@@ -19,7 +19,12 @@ export async function AuthMiddleware(
   }
   try {
     const decoded = cookie.verifySessionCookie(token);
-    req.user = decoded;
+    const decodedInfo = {
+      id: decoded?.id,
+      role: decoded?.role,
+      workspaceId: decoded?.workspaceId,
+    };
+    req.user = decodedInfo;
     next();
   } catch (error) {
     return ErrorResponse(res, 401, {}, "Session Expired", {

@@ -4,6 +4,7 @@ export const userRoleEnum = pgEnum("user_role", [
   "admin",
   "customer",
   "driver",
+  "delivery_agent",
 ]);
 export const parcelStatusEnum = pgEnum("parcel_status", [
   "label_created",

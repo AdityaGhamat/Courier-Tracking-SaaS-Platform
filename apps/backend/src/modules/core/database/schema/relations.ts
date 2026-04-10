@@ -6,8 +6,12 @@ import { trackingEvents } from "./trackingEvents";
 import { payments } from "./payments";
 import { vehicles } from "./vehicles";
 
-export const usersRelations = relations(users, ({ many }) => ({
-  workspaces: many(workspaces),
+export const usersRelations = relations(users, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [users.workspaceId],
+    references: [workspaces.id],
+  }),
+  ownedWorkspaces: many(workspaces, { relationName: "workspaceOwner" }),
   sentParcels: many(parcels, { relationName: "sender" }),
   deliveredParcels: many(parcels, { relationName: "driver" }),
   vehicle: many(vehicles),
@@ -18,6 +22,7 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
     fields: [workspaces.ownerId],
     references: [users.id],
   }),
+  staff: many(users),
   parcels: many(parcels),
 }));
 

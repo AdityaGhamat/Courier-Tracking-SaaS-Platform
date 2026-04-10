@@ -6,7 +6,7 @@ export const loginSchema = z.object({
 });
 
 export const registerTenantAdminSchema = z.object({
-  tenantName: z.string().min(2, "Company name must be at least 2 characters"),
+  companyName: z.string().min(2, "Company name must be at least 2 characters"), // Changed from tenantName to match controller
   adminName: z.string().min(2, "Admin name is required"),
   email: z.string().email("Invalid email address").toLowerCase().trim(),
   password: z.string().min(8, "Password must be at least 8 characters"),
