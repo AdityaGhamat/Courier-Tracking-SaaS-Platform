@@ -1,7 +1,9 @@
-import express, { Express, Request, Response } from "express";
+import express, { Express, NextFunction, Request, Response } from "express";
+import apiRoutes from "./routes";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import cors from "cors";
+import { errorMiddleware } from "./modules/core/middlewares/error.middlewares";
 
 class Server {
   public app: Express;
@@ -19,6 +21,7 @@ class Server {
     this.app.use(express.urlencoded({ extended: true }));
   }
   private routes() {
+    this.app.use("/api", apiRoutes);
     this.app.get("/", (req: Request, res: Response) => {
       res.json({
         Name: "",
@@ -26,7 +29,14 @@ class Server {
       });
     });
   }
-  private errorHandler() {}
+  private errorHandler() {
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
+      const error = new Error(`Route ${req.originalUrl} not found`) as any;
+      error.statusCode = 404;
+      next(error);
+    });
+    this.app.use(errorMiddleware);
+  }
   public async start(port: number) {
     this.app.listen(port, "0.0.0.0", () => {
       console.log(`Server started on 0.0.0.0:${port}`);

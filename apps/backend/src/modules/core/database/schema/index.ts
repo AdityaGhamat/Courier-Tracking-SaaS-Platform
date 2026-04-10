@@ -6,3 +6,4 @@ export * from "./trackingEvents";
 export * from "./payments";
 export * from "./vehicles";
 export * from "./relations";
+export * from "./hubs";

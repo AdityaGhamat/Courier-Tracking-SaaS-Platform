@@ -1,6 +1,6 @@
 import { ZodSchema, ZodError } from "zod";
 import { Request, Response, NextFunction } from "express";
-import { BadRequestError } from "../../core/errors/http.errors";
+import { ValidationError } from "../../core/errors/error"; // Adjust path to where you saved the classes
 
 type ValidationTarget = "body" | "query" | "params";
 
@@ -13,12 +13,21 @@ export const validate =
       next();
     } catch (err) {
       if (err instanceof ZodError) {
-        const message = err.issues
-          .map((e: any) => `${e.path.join(".")}: ${e.message}`)
-          .join(", ");
+        const errorDetails: Record<string, string> = {};
 
-        throw new BadRequestError(message);
+        err.issues.forEach((issue: any) => {
+          const field = issue.path.join(".");
+
+          if (issue.code === "invalid_type" && issue.received === "undefined") {
+            errorDetails[field] = `${field} is required`;
+          } else {
+            errorDetails[field] = issue.message;
+          }
+        });
+
+        return next(new ValidationError(errorDetails));
       }
-      throw err;
+
+      next(err);
     }
   };

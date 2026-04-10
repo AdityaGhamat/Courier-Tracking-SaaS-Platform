@@ -1,5 +1,14 @@
 import { AppError } from "./error";
 
+export class ValidationError extends AppError {
+  public readonly details: Record<string, string>;
+
+  constructor(message: string, details: Record<string, string>) {
+    super(message, 400, true);
+    this.details = details;
+  }
+}
+
 export class BadRequestError extends AppError {
   constructor(message = "Bad request") {
     super(message, 400);
