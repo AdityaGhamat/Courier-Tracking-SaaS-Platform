@@ -8,9 +8,14 @@ export const userRoleEnum = pgEnum("user_role", [
 ]);
 export const parcelStatusEnum = pgEnum("parcel_status", [
   "label_created",
+  "picked_up",
+  "at_sorting_facility",
   "in_transit",
   "out_for_delivery",
   "delivered",
+  "failed",
+  "retry",
+  "returned",
   "exception",
 ]);
 export const paymentStatusEnum = pgEnum("payment_status", [
