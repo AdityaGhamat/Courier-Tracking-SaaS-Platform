@@ -38,7 +38,8 @@ export const parcels = pgTable(
     status: parcelStatusEnum("status").default("label_created").notNull(),
     weight: decimal("weight", { precision: 10, scale: 2 }),
     estimatedDelivery: timestamp("estimated_delivery"),
-
+    labelUrl: text("label_url"),
+    deliveryProofUrl: text("delivery_proof_url"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

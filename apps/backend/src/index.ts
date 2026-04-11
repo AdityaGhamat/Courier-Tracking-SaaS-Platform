@@ -3,6 +3,8 @@ import apiRoutes from "./routes";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import cors from "cors";
+import helmet from "helmet";
+import { apiRateLimit } from "./modules/core/middlewares/rateLimit.middlewares";
 import { errorMiddleware } from "./modules/core/middlewares/error.middlewares";
 
 class Server {
@@ -15,10 +17,12 @@ class Server {
     this.errorHandler();
   }
   private middleware() {
+    this.app.use(helmet());
     this.app.use(cors());
     this.app.use(cookieParser());
-    this.app.use(express.json());
+    this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true }));
+    this.app.use("/api", apiRateLimit);
   }
   private routes() {
     this.app.use("/api", apiRoutes);

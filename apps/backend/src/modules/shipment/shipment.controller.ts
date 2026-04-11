@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { shipmentService } from "./service/shipment.service";
 import { SuccessResponse } from "../auth/utility/response";
+import { auditService } from "../core/audit/audit.service"; // ← add this
 
 class ShipmentController {
   async createShipment(req: Request, res: Response, next: NextFunction) {
@@ -11,6 +12,20 @@ class ShipmentController {
         senderId,
         workspaceId,
       );
+
+      auditService.log({
+        userId: senderId,
+        workspaceId,
+        action: "shipment.created",
+        entity: "shipment",
+        entityId: shipment.id,
+        metadata: {
+          trackingNumber: shipment.trackingNumber,
+          recipientName: shipment.recipientName,
+        },
+        req,
+      });
+
       return SuccessResponse(
         res,
         201,
@@ -30,6 +45,7 @@ class ShipmentController {
         id as string,
         workspaceId,
       );
+
       return SuccessResponse(
         res,
         200,
@@ -51,6 +67,7 @@ class ShipmentController {
         Number(limit) || 10,
         status,
       );
+
       return SuccessResponse(
         res,
         200,
@@ -72,6 +89,20 @@ class ShipmentController {
         agentId,
         req.body,
       );
+
+      auditService.log({
+        userId: agentId,
+        workspaceId,
+        action: "shipment.status_updated",
+        entity: "shipment",
+        entityId: id as string,
+        metadata: {
+          status: req.body.status,
+          location: req.body.location,
+        },
+        req,
+      });
+
       return SuccessResponse(
         res,
         200,
@@ -85,13 +116,24 @@ class ShipmentController {
 
   async assignAgent(req: Request, res: Response, next: NextFunction) {
     try {
-      const { workspaceId } = (req as any).user;
+      const { id: adminId, workspaceId } = (req as any).user;
       const { id } = req.params;
       const shipment = await shipmentService.assignAgent(
         id as string,
         workspaceId,
         req.body,
       );
+
+      auditService.log({
+        userId: adminId,
+        workspaceId,
+        action: "shipment.agent_assigned",
+        entity: "shipment",
+        entityId: id as string,
+        metadata: { agentId: req.body.agentId },
+        req,
+      });
+
       return SuccessResponse(res, 200, shipment, "Agent assigned successfully");
     } catch (error) {
       next(error);
@@ -107,6 +149,7 @@ class ShipmentController {
         Number(page) || 1,
         Number(limit) || 10,
       );
+
       return SuccessResponse(
         res,
         200,
@@ -125,6 +168,7 @@ class ShipmentController {
         agentId,
         workspaceId,
       );
+
       return SuccessResponse(
         res,
         200,

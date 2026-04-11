@@ -1,4 +1,4 @@
-import { pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core"; // ← add text
 import { users } from "./users";
 
 export const workspaces = pgTable("workspaces", {
@@ -8,5 +8,6 @@ export const workspaces = pgTable("workspaces", {
     .references(() => users.id)
     .notNull(),
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  logoUrl: text("logo_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

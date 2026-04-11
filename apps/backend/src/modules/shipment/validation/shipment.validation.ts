@@ -1,5 +1,18 @@
 import { z } from "zod";
 
+const parcelStatusEnum = z.enum([
+  "label_created",
+  "picked_up",
+  "at_sorting_facility",
+  "in_transit",
+  "out_for_delivery",
+  "delivered",
+  "failed",
+  "retry",
+  "returned",
+  "exception",
+]);
+
 export const createShipmentSchema = z.object({
   recipientName: z.string().min(2, "Recipient name is required"),
   recipientAddress: z.string().min(5, "Recipient address is required"),
@@ -11,17 +24,7 @@ export const createShipmentSchema = z.object({
 });
 
 export const updateShipmentStatusSchema = z.object({
-  status: z.enum([
-    "label_created",
-    "picked_up",
-    "at_sorting_facility",
-    "in_transit",
-    "out_for_delivery",
-    "delivered",
-    "failed",
-    "retry",
-    "returned",
-  ]),
+  status: parcelStatusEnum,
   location: z.string().min(1, "Location is required"),
   description: z.string().min(1, "Description is required"),
 });

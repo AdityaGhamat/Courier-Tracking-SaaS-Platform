@@ -18,6 +18,14 @@ declare global {
         RESEND_API_KEY: string;
         FROM_EMAIL: string;
         QUEUE_URL: string;
+        CLOUDFLARE_ACCOUNT_ID: string;
+        R2_ACCESS_KEY_ID: string;
+        R2_SECRET_ACCESS_KEY: string;
+        R2_BUCKET_NAME: string;
+        R2_TOKEN: string;
+        R2_PUBLIC_URL: string;
+        R2_ENDPOINT: string;
+        REDIS_URL: string;
       }
     }
   }

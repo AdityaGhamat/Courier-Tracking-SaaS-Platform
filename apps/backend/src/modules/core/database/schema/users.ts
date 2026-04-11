@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   workspaceId: uuid("workspace_id").references(
     (): AnyPgColumn => workspaces.id,
   ),
+  avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

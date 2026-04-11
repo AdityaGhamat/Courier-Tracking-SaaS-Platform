@@ -7,13 +7,8 @@ import {
   UpdateShipmentStatusInput,
   AssignAgentInput,
 } from "../validation/shipment.validation";
-
-function generateTrackingNumber(): string {
-  const prefix = "TRK";
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${timestamp}-${random}`;
-}
+import { generateTrackingNumber } from "../utility/tracking.utility";
+import { jobService } from "../../core/jobs/service/jobs.service";
 
 class ShipmentService {
   async createShipment(
@@ -22,6 +17,11 @@ class ShipmentService {
     workspaceId: string,
   ) {
     const trackingNumber = generateTrackingNumber();
+
+    const sender = await db.query.users.findFirst({
+      where: eq(users.id, senderId),
+      columns: { name: true, email: true },
+    });
 
     const [newParcel] = await db
       .insert(parcels)
@@ -41,13 +41,21 @@ class ShipmentService {
       })
       .returning();
 
-    // Create initial tracking event
     await db.insert(trackingEvents).values({
       parcelId: newParcel.id,
       status: "label_created",
       location: "Origin",
       description: "Shipment label created and registered in the system",
     });
+
+    if (data.recipientEmail) {
+      jobService.enqueue("send.shipment_created", {
+        recipientEmail: data.recipientEmail,
+        recipientName: data.recipientName,
+        trackingNumber,
+        senderName: sender?.name ?? "Unknown",
+      });
+    }
 
     return newParcel;
   }
@@ -59,21 +67,13 @@ class ShipmentService {
         eq(parcels.workspaceId, workspaceId),
       ),
       with: {
-        events: {
-          orderBy: [desc(trackingEvents.timestamp)],
-        },
-        sender: {
-          columns: { id: true, name: true, email: true },
-        },
-        driver: {
-          columns: { id: true, name: true, email: true },
-        },
+        events: { orderBy: [desc(trackingEvents.timestamp)] },
+        sender: { columns: { id: true, name: true, email: true } },
+        driver: { columns: { id: true, name: true, email: true } },
       },
     });
 
-    if (!shipment) {
-      throw new NotFoundError("Shipment not found");
-    }
+    if (!shipment) throw new NotFoundError("Shipment not found");
 
     return shipment;
   }
@@ -99,12 +99,8 @@ class ShipmentService {
       limit,
       offset,
       with: {
-        sender: {
-          columns: { id: true, name: true, email: true },
-        },
-        driver: {
-          columns: { id: true, name: true, email: true },
-        },
+        sender: { columns: { id: true, name: true, email: true } },
+        driver: { columns: { id: true, name: true, email: true } },
       },
     });
 
@@ -124,8 +120,12 @@ class ShipmentService {
       ),
     });
 
-    if (!shipment) {
-      throw new NotFoundError("Shipment not found");
+    if (!shipment) throw new NotFoundError("Shipment not found");
+
+    if (data.status === "delivered" && !shipment.deliveryProofUrl) {
+      throw new BadRequestError(
+        "Delivery proof photo must be uploaded before marking shipment as delivered",
+      );
     }
 
     const [updatedParcel] = await db
@@ -134,6 +134,8 @@ class ShipmentService {
       .where(eq(parcels.id, shipmentId))
       .returning();
 
+    const now = new Date();
+
     await db.insert(trackingEvents).values({
       parcelId: shipmentId,
       status: data.status as any,
@@ -141,6 +143,45 @@ class ShipmentService {
       location: data.location,
       description: data.description,
     });
+
+    if (shipment.recipientEmail) {
+      const base = {
+        recipientEmail: shipment.recipientEmail,
+        recipientName: shipment.recipientName,
+        trackingNumber: shipment.trackingNumber,
+      };
+
+      if (data.status === "out_for_delivery") {
+        const agent = await db.query.users.findFirst({
+          where: eq(users.id, agentId),
+          columns: { name: true },
+        });
+        jobService.enqueue("send.out_for_delivery", {
+          ...base,
+          agentName: agent?.name ?? "Your delivery agent",
+          estimatedDelivery: shipment.estimatedDelivery ?? undefined,
+        });
+      } else if (data.status === "delivered") {
+        jobService.enqueue("send.delivered", {
+          ...base,
+          timestamp: now,
+        });
+      } else if (data.status === "failed") {
+        jobService.enqueue("send.delivery_failed", {
+          ...base,
+          reason: data.description ?? "Delivery attempt failed",
+          timestamp: now,
+        });
+      } else {
+        jobService.enqueue("send.status_updated", {
+          ...base,
+          status: data.status,
+          location: data.location,
+          description: data.description,
+          timestamp: now,
+        });
+      }
+    }
 
     return updatedParcel;
   }
@@ -157,11 +198,8 @@ class ShipmentService {
       ),
     });
 
-    if (!shipment) {
-      throw new NotFoundError("Shipment not found");
-    }
+    if (!shipment) throw new NotFoundError("Shipment not found");
 
-    // Verify agent exists and belongs to same workspace
     const agent = await db.query.users.findFirst({
       where: and(
         eq(users.id, data.agentId),
@@ -182,6 +220,15 @@ class ShipmentService {
       .where(eq(parcels.id, shipmentId))
       .returning();
 
+    if (shipment.recipientEmail) {
+      jobService.enqueue("send.agent_assigned", {
+        recipientEmail: shipment.recipientEmail,
+        recipientName: shipment.recipientName,
+        trackingNumber: shipment.trackingNumber,
+        agentName: agent.name,
+      });
+    }
+
     return updatedParcel;
   }
 
@@ -194,9 +241,7 @@ class ShipmentService {
       limit,
       offset,
       with: {
-        events: {
-          orderBy: [desc(trackingEvents.timestamp)],
-        },
+        events: { orderBy: [desc(trackingEvents.timestamp)] },
       },
     });
 
@@ -211,9 +256,7 @@ class ShipmentService {
       ),
       orderBy: [desc(parcels.createdAt)],
       with: {
-        events: {
-          orderBy: [desc(trackingEvents.timestamp)],
-        },
+        events: { orderBy: [desc(trackingEvents.timestamp)] },
       },
     });
 
