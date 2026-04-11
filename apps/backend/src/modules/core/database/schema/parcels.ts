@@ -10,6 +10,7 @@ import {
 import { parcelStatusEnum } from "./enums";
 import { users } from "./users";
 import { workspaces } from "./workspaces";
+import { hubs } from "./hubs";
 
 export const parcels = pgTable(
   "parcels",
@@ -26,6 +27,8 @@ export const parcels = pgTable(
       .references(() => users.id)
       .notNull(),
     driverId: uuid("driver_id").references(() => users.id),
+
+    hubId: uuid("hub_id").references(() => hubs.id),
 
     recipientName: varchar("recipient_name", { length: 255 }).notNull(),
     recipientAddress: text("recipient_address").notNull(),

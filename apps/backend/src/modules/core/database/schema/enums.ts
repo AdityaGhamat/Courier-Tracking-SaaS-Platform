@@ -1,6 +1,7 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", [
+  "super_admin",
   "admin",
   "customer",
   "driver",
@@ -29,4 +30,11 @@ export const vehicleTypeEnum = pgEnum("vehicle_type", [
   "car",
   "van",
   "truck",
+]);
+
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "active",
+  "inactive",
+  "expired",
+  "cancelled",
 ]);

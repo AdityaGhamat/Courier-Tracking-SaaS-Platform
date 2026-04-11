@@ -23,6 +23,13 @@ export const registerCustomerSchema = z.object({
   email: z.string().email("Invalid email address").toLowerCase().trim(),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
+export const registerSuperAdminSchema = z.object({
+  name: z.string().min(2, "Name is required"),
+  email: z.string().email("Invalid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export type RegisterSuperAdminInput = z.infer<typeof registerSuperAdminSchema>;
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterTenantAdminInput = z.infer<

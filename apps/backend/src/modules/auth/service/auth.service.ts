@@ -2,12 +2,13 @@ import { db } from "../../core/database";
 import { users, workspaces } from "../../core/database/schema";
 import { eq } from "drizzle-orm";
 import passwordLib from "../utility/password";
-import Cookie from "../utility/cookie"; // <-- Import your custom Cookie library
+import Cookie from "../utility/cookie";
 import {
   RegisterTenantAdminInput,
   LoginInput,
   RegisterAgentInput,
   RegisterCustomerInput,
+  RegisterSuperAdminInput,
 } from "../validation/auth.validation";
 import {
   BadRequestError,
@@ -175,6 +176,40 @@ class AuthService {
     } catch (error) {
       throw new UnauthorizedError("Invalid or expired refresh token");
     }
+  }
+  async registerSuperAdmin(data: RegisterSuperAdminInput) {
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, data.email),
+    });
+
+    if (existingUser) {
+      throw new BadRequestError("User with this email already exists");
+    }
+
+    const hashedPassword = await passwordLib.hashPassword(data.password);
+
+    const [newSuperAdmin] = await db
+      .insert(users)
+      .values({
+        name: data.name,
+        email: data.email,
+        password: hashedPassword,
+        role: "super_admin",
+        // No workspaceId — super_admin is platform-level
+      })
+      .returning();
+
+    const { password: _, ...safeSuperAdmin } = newSuperAdmin;
+
+    const payload = {
+      id: safeSuperAdmin.id,
+      role: safeSuperAdmin.role,
+      workspaceId: null,
+    };
+
+    const tokens = await cookie.generateCookie(payload as any);
+
+    return { tokens, user: safeSuperAdmin };
   }
 }
 

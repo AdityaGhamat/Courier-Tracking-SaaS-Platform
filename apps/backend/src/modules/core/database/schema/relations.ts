@@ -5,6 +5,7 @@ import { parcels } from "./parcels";
 import { trackingEvents } from "./trackingEvents";
 import { payments } from "./payments";
 import { vehicles } from "./vehicles";
+import { hubs } from "./hubs";
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   workspace: one(workspaces, {
@@ -24,6 +25,7 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   }),
   staff: many(users),
   parcels: many(parcels),
+  hubs: many(hubs),
 }));
 
 export const parcelsRelations = relations(parcels, ({ one, many }) => ({
@@ -42,10 +44,7 @@ export const parcelsRelations = relations(parcels, ({ one, many }) => ({
     relationName: "driver",
   }),
   events: many(trackingEvents),
-  payment: one(payments, {
-    fields: [parcels.id],
-    references: [payments.parcelId],
-  }),
+  payments: many(payments),
 }));
 
 export const trackingEventsRelations = relations(trackingEvents, ({ one }) => ({
@@ -67,4 +66,17 @@ export const vehiclesRelations = relations(vehicles, ({ one }) => ({
     fields: [vehicles.driverId],
     references: [users.id],
   }),
+  workspace: one(workspaces, {
+    fields: [vehicles.workspaceId],
+    references: [workspaces.id],
+  }),
+}));
+
+export const hubsRelations = relations(hubs, ({ one, many }) => ({
+  // ← ADDED
+  workspace: one(workspaces, {
+    fields: [hubs.workspaceId],
+    references: [workspaces.id],
+  }),
+  parcels: many(parcels),
 }));

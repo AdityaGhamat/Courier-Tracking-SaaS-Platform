@@ -1,4 +1,3 @@
-import type { IToken } from "../backend/src/modules/auth/types/utility";
 export {};
 declare global {
   namespace Express {
@@ -16,6 +15,8 @@ declare global {
         DATABASE_URL: string;
         COOKIE_SECRET_KEY: string;
         COOKIE_REFRESH_SECRET: string;
+        RESEND_API_KEY: string;
+        FROM_EMAIL: string;
         QUEUE_URL: string;
       }
     }

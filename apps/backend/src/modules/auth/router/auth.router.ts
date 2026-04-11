@@ -9,6 +9,7 @@ import {
   loginSchema,
   registerAgentSchema,
   registerCustomerSchema,
+  registerSuperAdminSchema,
 } from "../validation/auth.validation";
 
 const router = Router();
@@ -40,6 +41,11 @@ router.post(
   requireRole(["admin"]),
   validate(registerAgentSchema),
   authController.registerAgent,
+);
+router.post(
+  "/register/super-admin",
+  validate(registerSuperAdminSchema),
+  authController.registerSuperAdmin,
 );
 
 router.post("/logout", authController.logout);

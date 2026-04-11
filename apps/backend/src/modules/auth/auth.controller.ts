@@ -111,6 +111,29 @@ class AuthController {
       next(error);
     }
   }
+  async registerSuperAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.registerSuperAdmin(req.body);
+
+      res.cookie("session_key", result.tokens.sessionCookie, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+      });
+      res.cookie("refresh_key", result.tokens.refreshCookie, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+      });
+
+      return SuccessResponse(
+        res,
+        201,
+        result,
+        "Super Admin registered successfully",
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
 
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
