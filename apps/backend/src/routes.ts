@@ -9,6 +9,7 @@ import paymentRoutes from "./modules/payment/router/payment.router";
 import uploadRoutes from "./modules/upload/router/upload.router";
 import analyticsRoutes from "./modules/analytics/router/analytics.router";
 import qrcodeRoutes from "./modules/qrcode/router/qrcode.router";
+import subscriptionRoutes from "./modules/subscription/router/subscription.router";
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.use("/v1/vehicles", vehicleRoutes);
 router.use("/v1/payments", paymentRoutes);
 router.use("/v1/upload", uploadRoutes);
 router.use("/v1/analytics", analyticsRoutes);
-router.use("/api/qrcode", qrcodeRoutes);
+router.use("/v1/qrcode", qrcodeRoutes);
+router.use("/v1/subscriptions", subscriptionRoutes);
 
 export default router;

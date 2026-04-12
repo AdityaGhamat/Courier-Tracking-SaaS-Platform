@@ -5,50 +5,30 @@ import { NotFoundError, BadRequestError } from "../../core/errors/http.errors";
 import {
   CreateHubInput,
   UpdateHubInput,
-  AssignShipmentToHubInput,
+  AssignHubInput,
 } from "../validation/hub.validation";
 
 class HubService {
-  async createHub(data: CreateHubInput, workspaceId: string) {
-    const existingHub = await db.query.hubs.findFirst({
-      where: and(eq(hubs.name, data.name), eq(hubs.workspaceId, workspaceId)),
-    });
-
-    if (existingHub) {
-      throw new BadRequestError(
-        "A hub with this name already exists in your workspace",
-      );
-    }
-
-    const [newHub] = await db
+  async createHub(workspaceId: string, data: CreateHubInput) {
+    const [hub] = await db
       .insert(hubs)
-      .values({
-        name: data.name,
-        address: data.address,
-        workspaceId,
-      })
+      .values({ ...data, workspaceId })
       .returning();
-
-    return newHub;
+    return hub;
   }
 
   async listHubs(workspaceId: string) {
-    const hubList = await db.query.hubs.findMany({
+    return db.query.hubs.findMany({
       where: eq(hubs.workspaceId, workspaceId),
+      orderBy: (hubs, { desc }) => [desc(hubs.createdAt)],
     });
-
-    return hubList;
   }
 
   async getHubById(hubId: string, workspaceId: string) {
     const hub = await db.query.hubs.findFirst({
       where: and(eq(hubs.id, hubId), eq(hubs.workspaceId, workspaceId)),
     });
-
-    if (!hub) {
-      throw new NotFoundError("Hub not found");
-    }
-
+    if (!hub) throw new NotFoundError("Hub not found");
     return hub;
   }
 
@@ -56,107 +36,76 @@ class HubService {
     const hub = await db.query.hubs.findFirst({
       where: and(eq(hubs.id, hubId), eq(hubs.workspaceId, workspaceId)),
     });
+    if (!hub) throw new NotFoundError("Hub not found");
 
-    if (!hub) {
-      throw new NotFoundError("Hub not found");
-    }
-
-    const [updatedHub] = await db
+    const [updated] = await db
       .update(hubs)
-      .set({
-        ...(data.name && { name: data.name }),
-        ...(data.address && { address: data.address }),
-        updatedAt: new Date(),
-      })
+      .set(data)
       .where(eq(hubs.id, hubId))
       .returning();
-
-    return updatedHub;
+    return updated;
   }
 
   async deleteHub(hubId: string, workspaceId: string) {
     const hub = await db.query.hubs.findFirst({
       where: and(eq(hubs.id, hubId), eq(hubs.workspaceId, workspaceId)),
     });
+    if (!hub) throw new NotFoundError("Hub not found");
 
-    if (!hub) {
-      throw new NotFoundError("Hub not found");
-    }
-
-    // Check if hub has active shipments
-    const activeShipments = await db.query.parcels.findFirst({
-      where: eq(parcels.hubId, hubId),
-    });
-
-    if (activeShipments) {
-      throw new BadRequestError(
-        "Cannot delete hub with assigned shipments. Reassign shipments first.",
-      );
-    }
-
-    await db.delete(hubs).where(eq(hubs.id, hubId));
-
-    return { message: "Hub deleted successfully" };
+    const [updated] = await db
+      .update(hubs)
+      .set({ isActive: false })
+      .where(eq(hubs.id, hubId))
+      .returning();
+    return updated;
   }
 
   async assignShipmentToHub(
-    hubId: string,
+    shipmentId: string,
     workspaceId: string,
-    data: AssignShipmentToHubInput,
+    data: AssignHubInput,
   ) {
-    // Verify hub exists in this workspace
-    const hub = await db.query.hubs.findFirst({
-      where: and(eq(hubs.id, hubId), eq(hubs.workspaceId, workspaceId)),
-    });
-
-    if (!hub) {
-      throw new NotFoundError("Hub not found");
-    }
-
-    // Verify shipment exists in this workspace
-    const shipment = await db.query.parcels.findFirst({
+    const parcel = await db.query.parcels.findFirst({
       where: and(
-        eq(parcels.id, data.shipmentId),
+        eq(parcels.id, shipmentId),
         eq(parcels.workspaceId, workspaceId),
       ),
     });
+    if (!parcel) throw new NotFoundError("Shipment not found");
 
-    if (!shipment) {
-      throw new NotFoundError("Shipment not found");
-    }
+    const hub = await db.query.hubs.findFirst({
+      where: and(
+        eq(hubs.id, data.hubId),
+        eq(hubs.workspaceId, workspaceId),
+        eq(hubs.isActive, true),
+      ),
+    });
+    if (!hub) throw new BadRequestError("Hub not found or inactive");
 
-    const [updatedParcel] = await db
+    const [updated] = await db
       .update(parcels)
-      .set({ hubId, updatedAt: new Date() })
-      .where(eq(parcels.id, data.shipmentId))
+      .set({ hubId: data.hubId })
+      .where(eq(parcels.id, shipmentId))
       .returning();
-
-    return updatedParcel;
+    return updated;
   }
 
   async getHubShipments(hubId: string, workspaceId: string) {
-    // Verify hub belongs to workspace
     const hub = await db.query.hubs.findFirst({
       where: and(eq(hubs.id, hubId), eq(hubs.workspaceId, workspaceId)),
     });
+    if (!hub) throw new NotFoundError("Hub not found");
 
-    if (!hub) {
-      throw new NotFoundError("Hub not found");
-    }
-
-    const shipments = await db.query.parcels.findMany({
-      where: eq(parcels.hubId, hubId),
+    return db.query.parcels.findMany({
+      where: and(
+        eq(parcels.hubId, hubId),
+        eq(parcels.workspaceId, workspaceId),
+      ),
       with: {
-        sender: {
-          columns: { id: true, name: true, email: true },
-        },
-        driver: {
-          columns: { id: true, name: true, email: true },
-        },
+        sender: { columns: { id: true, name: true, email: true } },
+        driver: { columns: { id: true, name: true } },
       },
     });
-
-    return { hub, shipments };
   }
 }
 

@@ -38,3 +38,6 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "expired",
   "cancelled",
 ]);
+
+export const planTypeEnum = pgEnum("plan_type", ["basic", "pro", "enterprise"]);
+export const billingCycleEnum = pgEnum("billing_cycle", ["monthly", "yearly"]);

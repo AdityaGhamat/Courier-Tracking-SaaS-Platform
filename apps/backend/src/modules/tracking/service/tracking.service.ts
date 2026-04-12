@@ -26,7 +26,6 @@ class TrackingService {
       );
     }
 
-    // Shape a clean public response — no sensitive internal data
     return {
       trackingNumber: parcel.trackingNumber,
       currentStatus: parcel.status,

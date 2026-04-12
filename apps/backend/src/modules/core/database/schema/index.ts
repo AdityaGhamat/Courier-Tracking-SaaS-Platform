@@ -8,5 +8,6 @@ export * from "./vehicles";
 export * from "./relations";
 export * from "./hubs";
 export * from "./subscriptionPlans";
+export * from "./subscriptions";
 export * from "./tenantSubscriptions";
 export * from "./auditLogs";

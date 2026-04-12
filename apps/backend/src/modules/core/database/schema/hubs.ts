@@ -4,6 +4,7 @@ import {
   uuid,
   varchar,
   text,
+  boolean,
   index,
 } from "drizzle-orm/pg-core";
 import { workspaces } from "./workspaces";
@@ -14,6 +15,11 @@ export const hubs = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     name: varchar("name", { length: 255 }).notNull(),
     address: text("address").notNull(),
+    city: varchar("city", { length: 100 }).notNull(),
+    state: varchar("state", { length: 100 }),
+    country: varchar("country", { length: 100 }).notNull(),
+    phone: varchar("phone", { length: 20 }),
+    isActive: boolean("is_active").default(true).notNull(),
 
     workspaceId: uuid("workspace_id")
       .references(() => workspaces.id)

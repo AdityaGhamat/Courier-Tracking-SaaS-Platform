@@ -6,7 +6,7 @@ class HubController {
   async createHub(req: Request, res: Response, next: NextFunction) {
     try {
       const { workspaceId } = (req as any).user;
-      const hub = await hubService.createHub(req.body, workspaceId);
+      const hub = await hubService.createHub(workspaceId, req.body);
       return SuccessResponse(res, 201, hub, "Hub created successfully");
     } catch (error) {
       next(error);
@@ -16,8 +16,8 @@ class HubController {
   async listHubs(req: Request, res: Response, next: NextFunction) {
     try {
       const { workspaceId } = (req as any).user;
-      const hubs = await hubService.listHubs(workspaceId);
-      return SuccessResponse(res, 200, hubs, "Hubs fetched successfully");
+      const result = await hubService.listHubs(workspaceId);
+      return SuccessResponse(res, 200, result, "Hubs fetched successfully");
     } catch (error) {
       next(error);
     }
@@ -53,8 +53,8 @@ class HubController {
     try {
       const { workspaceId } = (req as any).user;
       const { id } = req.params;
-      const result = await hubService.deleteHub(id as string, workspaceId);
-      return SuccessResponse(res, 200, result, "Hub deleted successfully");
+      const hub = await hubService.deleteHub(id as string, workspaceId);
+      return SuccessResponse(res, 200, hub, "Hub deactivated successfully");
     } catch (error) {
       next(error);
     }
@@ -69,12 +69,7 @@ class HubController {
         workspaceId,
         req.body,
       );
-      return SuccessResponse(
-        res,
-        200,
-        result,
-        "Shipment assigned to hub successfully",
-      );
+      return SuccessResponse(res, 200, result, "Shipment assigned to hub");
     } catch (error) {
       next(error);
     }
@@ -84,16 +79,11 @@ class HubController {
     try {
       const { workspaceId } = (req as any).user;
       const { id } = req.params;
-      const result = await hubService.getHubShipments(
+      const shipments = await hubService.getHubShipments(
         id as string,
         workspaceId,
       );
-      return SuccessResponse(
-        res,
-        200,
-        result,
-        "Hub shipments fetched successfully",
-      );
+      return SuccessResponse(res, 200, shipments, "Hub shipments fetched");
     } catch (error) {
       next(error);
     }
