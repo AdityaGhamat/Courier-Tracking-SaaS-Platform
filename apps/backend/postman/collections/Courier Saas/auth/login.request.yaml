@@ -1,0 +1,12 @@
+$kind: http-request
+name: login
+url: http://localhost:3005/api/v1/auth/login
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "email":"adi@gmail.com",
+        "password":"12345678"
+    }
+order: 1775990958669

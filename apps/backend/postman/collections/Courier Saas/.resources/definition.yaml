@@ -1,0 +1,14 @@
+$kind: collection
+name: Courier Saas
+auth:
+  - id: 1814c659-1c00-44d0-8b7f-cfeb309816ba
+    type: jwt
+    name: JWT Bearer
+    credentials:
+      algorithm: HS256
+      isSecretBase64Encoded: false
+      payload: "{}"
+      addTokenTo: header
+      headerPrefix: Bearer
+      queryParamKey: token
+      header: "{}"
