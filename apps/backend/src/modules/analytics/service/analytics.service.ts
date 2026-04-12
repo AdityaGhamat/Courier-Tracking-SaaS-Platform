@@ -1,12 +1,18 @@
 import { db } from "../../core/database";
 import { parcels, users, workspaces } from "../../core/database/schema";
-import { eq, and, count, sql, gte, lte } from "drizzle-orm";
+import { eq, and, count, sql, gte } from "drizzle-orm";
+import { cacheService } from "../../core/redis/service/cache.service";
 
 class AnalyticsService {
   // =====================
   // Admin — workspace-scoped analytics
   // =====================
   async getWorkspaceAnalytics(workspaceId: string) {
+    const cacheKey = `analytics:workspace:${workspaceId}`;
+
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
     const [shipmentStats] = await db
       .select({
         total: count(),
@@ -36,7 +42,6 @@ class AnalyticsService {
         and(eq(users.workspaceId, workspaceId), eq(users.role, "customer")),
       );
 
-    // Shipments per day — last 30 days
     const dailyShipments = await db
       .select({
         date: sql<string>`DATE(created_at)`,
@@ -52,18 +57,27 @@ class AnalyticsService {
       .groupBy(sql`DATE(created_at)`)
       .orderBy(sql`DATE(created_at) ASC`);
 
-    return {
+    const result = {
       shipments: shipmentStats,
       agents: agentCount.total,
       customers: customerCount.total,
       dailyShipments,
     };
+
+    await cacheService.set(cacheKey, result, 300);
+
+    return result;
   }
 
   // =====================
   // SuperAdmin — platform-wide analytics
   // =====================
   async getPlatformAnalytics() {
+    const cacheKey = `analytics:platform`;
+
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
     const [shipmentStats] = await db
       .select({
         total: count(),
@@ -79,7 +93,6 @@ class AnalyticsService {
 
     const [userCount] = await db.select({ total: count() }).from(users);
 
-    // Top 5 workspaces by shipment volume
     const topWorkspaces = await db
       .select({
         workspaceId: parcels.workspaceId,
@@ -92,7 +105,6 @@ class AnalyticsService {
       .orderBy(sql`COUNT(*) DESC`)
       .limit(5);
 
-    // Shipments per day — last 30 days
     const dailyShipments = await db
       .select({
         date: sql<string>`DATE(created_at)`,
@@ -103,19 +115,28 @@ class AnalyticsService {
       .groupBy(sql`DATE(created_at)`)
       .orderBy(sql`DATE(created_at) ASC`);
 
-    return {
+    const result = {
       shipments: shipmentStats,
       workspaces: workspaceCount.total,
       users: userCount.total,
       topWorkspaces,
       dailyShipments,
     };
+
+    await cacheService.set(cacheKey, result, 600);
+
+    return result;
   }
 
   // =====================
   // Agent — personal delivery analytics
   // =====================
   async getAgentAnalytics(agentId: string, workspaceId: string) {
+    const cacheKey = `analytics:agent:${agentId}`;
+
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
     const [stats] = await db
       .select({
         total: count(),
@@ -132,7 +153,6 @@ class AnalyticsService {
         ),
       );
 
-    // Last 7 days activity
     const weeklyActivity = await db
       .select({
         date: sql<string>`DATE(updated_at)`,
@@ -150,7 +170,23 @@ class AnalyticsService {
       .groupBy(sql`DATE(updated_at)`)
       .orderBy(sql`DATE(updated_at) ASC`);
 
-    return { stats, weeklyActivity };
+    const result = { stats, weeklyActivity };
+
+    await cacheService.set(cacheKey, result, 300);
+
+    return result;
+  }
+
+  // =====================
+  // Cache Invalidation — call this from shipment.service.ts
+  // when status is updated
+  // =====================
+  async invalidateAnalyticsCache(workspaceId: string, agentId?: string) {
+    await cacheService.del(`analytics:workspace:${workspaceId}`);
+    await cacheService.del(`analytics:platform`);
+    if (agentId) {
+      await cacheService.del(`analytics:agent:${agentId}`);
+    }
   }
 }
 

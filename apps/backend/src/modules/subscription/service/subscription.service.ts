@@ -12,6 +12,7 @@ import {
   AssignPlanInput,
   UpdateSubscriptionInput,
 } from "../validation/subscription.validation";
+import { cacheService } from "../../core/redis/service/cache.service";
 
 class SubscriptionService {
   // =====================
@@ -20,14 +21,24 @@ class SubscriptionService {
 
   async createPlan(data: CreatePlanInput) {
     const [plan] = await db.insert(subscriptionPlans).values(data).returning();
+    await cacheService.del("subscription:plans:active");
     return plan;
   }
 
   async listPlans() {
-    return db.query.subscriptionPlans.findMany({
+    const cacheKey = "subscription:plans:active";
+
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    const plans = await db.query.subscriptionPlans.findMany({
       where: eq(subscriptionPlans.isActive, true),
       orderBy: (subscriptionPlans, { asc }) => [asc(subscriptionPlans.price)],
     });
+
+    await cacheService.set(cacheKey, plans, 600);
+
+    return plans;
   }
 
   async getPlanById(planId: string) {
@@ -42,6 +53,7 @@ class SubscriptionService {
     const plan = await db.query.subscriptionPlans.findFirst({
       where: eq(subscriptionPlans.id, planId),
     });
+    await cacheService.del("subscription:plans:active");
     if (!plan) throw new NotFoundError("Plan not found");
 
     const [updated] = await db
@@ -49,6 +61,7 @@ class SubscriptionService {
       .set(data)
       .where(eq(subscriptionPlans.id, planId))
       .returning();
+    await cacheService.del("subscription:plans:active");
     return updated;
   }
 
@@ -56,6 +69,7 @@ class SubscriptionService {
     const plan = await db.query.subscriptionPlans.findFirst({
       where: eq(subscriptionPlans.id, planId),
     });
+    await cacheService.del("subscription:plans:active");
     if (!plan) throw new NotFoundError("Plan not found");
 
     const [updated] = await db
@@ -63,6 +77,7 @@ class SubscriptionService {
       .set({ isActive: false })
       .where(eq(subscriptionPlans.id, planId))
       .returning();
+    await cacheService.del("subscription:plans:active");
     return updated;
   }
 

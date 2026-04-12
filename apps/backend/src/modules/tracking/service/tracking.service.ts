@@ -2,9 +2,13 @@ import { db } from "../../core/database";
 import { parcels, trackingEvents } from "../../core/database/schema";
 import { eq, desc } from "drizzle-orm";
 import { NotFoundError } from "../../core/errors/http.errors";
+import { cacheService } from "../../core/redis/service/cache.service";
 
 class TrackingService {
   async trackByTrackingNumber(trackingNumber: string) {
+    const cacheKey = `tracking:${trackingNumber}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
     const parcel = await db.query.parcels.findFirst({
       where: eq(parcels.trackingNumber, trackingNumber),
       with: {
@@ -26,7 +30,7 @@ class TrackingService {
       );
     }
 
-    return {
+    const result = {
       trackingNumber: parcel.trackingNumber,
       currentStatus: parcel.status,
       estimatedDelivery: parcel.estimatedDelivery,
@@ -42,6 +46,10 @@ class TrackingService {
         timestamp: event.timestamp,
       })),
     };
+
+    await cacheService.set(cacheKey, result, 120);
+
+    return result;
   }
 }
 

@@ -118,6 +118,43 @@ router.get(
 
 /**
  * @swagger
+ * /api/shipments/agent/{id}/optimized-route:
+ *   get:
+ *     summary: Get optimized delivery route for an agent (admin only)
+ *     tags: [Shipments]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *         description: Agent user ID
+ *       - in: query
+ *         name: hubLat
+ *         required: true
+ *         schema: { type: number }
+ *         description: Hub starting latitude e.g. 19.0760
+ *       - in: query
+ *         name: hubLng
+ *         required: true
+ *         schema: { type: number }
+ *         description: Hub starting longitude e.g. 72.8777
+ *     responses:
+ *       200:
+ *         description: Optimized route returned
+ *       404:
+ *         description: No active deliveries found
+ */
+
+router.get(
+  "/agent/:id/optimized-route",
+  requireRole(["admin"]),
+  shipmentController.getOptimizedRoute,
+);
+
+/**
+ * @swagger
  * /api/shipments/{id}:
  *   get:
  *     summary: Get shipment by ID

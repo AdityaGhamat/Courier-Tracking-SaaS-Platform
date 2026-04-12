@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { shipmentService } from "./service/shipment.service";
 import { SuccessResponse } from "../auth/utility/response";
-import { auditService } from "../core/audit/audit.service"; // ← add this
+import { auditService } from "../core/audit/audit.service";
+import { routeOptimizationService } from "./service/route-optimization.service";
 
 class ShipmentController {
   async createShipment(req: Request, res: Response, next: NextFunction) {
@@ -175,6 +176,32 @@ class ShipmentController {
         shipments,
         "Agent shipments fetched successfully",
       );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  //route optimization
+  async getOptimizedRoute(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id: agentId } = req.params;
+      const { workspaceId } = (req as any).user;
+      const { hubLat, hubLng } = req.query;
+
+      if (!hubLat || !hubLng) {
+        return res.status(400).json({
+          message: "hubLat and hubLng query params are required",
+        });
+      }
+
+      const result = await routeOptimizationService.getOptimizedRoute(
+        agentId as string,
+        workspaceId,
+        parseFloat(hubLat as string),
+        parseFloat(hubLng as string),
+      );
+
+      return SuccessResponse(res, 200, result, "Optimized route calculated");
     } catch (error) {
       next(error);
     }

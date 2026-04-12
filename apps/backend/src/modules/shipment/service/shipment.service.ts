@@ -9,6 +9,8 @@ import {
 } from "../validation/shipment.validation";
 import { generateTrackingNumber } from "../utility/tracking.utility";
 import { jobService } from "../../core/jobs/service/jobs.service";
+import { analyticsService } from "../../analytics/service/analytics.service";
+import { cacheService } from "../../core/redis/service/cache.service";
 
 class ShipmentService {
   async createShipment(
@@ -143,6 +145,12 @@ class ShipmentService {
       location: data.location,
       description: data.description,
     });
+
+    await analyticsService.invalidateAnalyticsCache(
+      workspaceId,
+      shipment.driverId ?? undefined,
+    );
+    await cacheService.del(`tracking:${shipment.trackingNumber}`);
 
     if (shipment.recipientEmail) {
       const base = {
