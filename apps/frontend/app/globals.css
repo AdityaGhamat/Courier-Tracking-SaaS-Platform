@@ -1,0 +1,219 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap");
+@import "tailwindcss";
+
+@theme {
+  /* ── Fonts */
+  --font-display: "Manrope", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  /* ── Surface hierarchy (stacked planes system) */
+  --color-surface: #f8f9ff;
+  --color-surface-dim: #d8dae7;
+  --color-surface-low: #eff4ff;
+  --color-surface-high: #d3e4fe;
+  --color-surface-highest: #d3e4fe;
+  --color-surface-lowest: #ffffff;
+
+  /* ── Primary (deep navy — sidebar anchor) */
+  --color-primary: #091426;
+  --color-primary-container: #1e3a5f;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #8590a6;
+
+  /* ── Secondary (kinetic orange — CTAs ONLY) */
+  --color-secondary: #9d4300;
+  --color-secondary-container: #fd761a;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #ffffff;
+
+  /* ── Tertiary (deep teal — in-transit badge) */
+  --color-tertiary: #002c42;
+  --color-tertiary-container: #003f5e;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #b3e5fc;
+
+  /* ── On-surface text levels */
+  --color-on-surface: #0b1c30;
+  --color-on-surface-variant: #45474c;
+  --color-outline-variant: #c5c6cd;
+
+  /* ── Semantic: Error */
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #410002;
+
+  /* ── Semantic: Success */
+  --color-success: #1a6b3c;
+  --color-success-container: #d4edda;
+  --color-on-success-container: #0a3d20;
+
+  /* ── Semantic: Warning */
+  --color-warning: #7a5200;
+  --color-warning-container: #ffecc7;
+  --color-on-warning-container: #261900;
+
+  /* ── Type scale */
+  --text-display-lg: 3.5rem;
+  --text-display-md: 2.5rem;
+  --text-headline-lg: 2rem;
+  --text-headline-md: 1.75rem;
+  --text-headline-sm: 1.5rem;
+  --text-title-lg: 1.25rem;
+  --text-title-md: 1rem;
+  --text-body-lg: 1rem;
+  --text-body-md: 0.875rem;
+  --text-body-sm: 0.75rem;
+  --text-label-lg: 0.875rem;
+  --text-label-md: 0.75rem;
+  --text-label-sm: 0.6875rem;
+
+  /* ── Spacing (4px base) */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+
+  /* ── Border radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+
+  /* ── Shadows (navy-tinted, never black) */
+  --shadow-ambient: 0 20px 40px rgba(11, 28, 48, 0.06);
+  --shadow-card: 0 4px 16px rgba(11, 28, 48, 0.04);
+  --shadow-modal: 0 20px 60px rgba(11, 28, 48, 0.1);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+    min-height: 100dvh;
+    font-size: var(--text-body-md);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  /* shadcn CSS variable bridge — maps shadcn's expected vars to our tokens */
+  :root {
+    --background: 248 249 255;
+    --foreground: 11 28 48;
+    --card: 255 255 255;
+    --card-foreground: 11 28 48;
+    --primary: 9 20 38;
+    --primary-foreground: 255 255 255;
+    --secondary: 239 244 255;
+    --secondary-foreground: 11 28 48;
+    --muted: 239 244 255;
+    --muted-foreground: 69 71 76;
+    --accent: 239 244 255;
+    --accent-foreground: 11 28 48;
+    --destructive: 186 26 26;
+    --destructive-foreground: 255 255 255;
+    --border: 197 198 205;
+    --input: 239 244 255;
+    --ring: 253 118 26;
+    --radius: 0.375rem;
+  }
+}
+
+@layer utilities {
+  /* Kinetic CTA — orange gradient for primary action buttons */
+  .btn-kinetic {
+    background-image: linear-gradient(135deg, #9d4300 0%, #fd761a 100%);
+    color: white;
+    transition:
+      opacity 150ms ease,
+      transform 150ms ease;
+  }
+  .btn-kinetic:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+  }
+  .btn-kinetic:active {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* Glassmorphism — floating sidebars / tooltips */
+  .glass-panel {
+    background: rgba(211, 228, 254, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Sidebar active state — 4px kinetic orange bar on the left */
+  .nav-active {
+    position: relative;
+    background-color: var(--color-primary-container);
+    color: var(--color-on-primary);
+  }
+  .nav-active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 60%;
+    background: var(--color-secondary-container);
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* No-border data table rows */
+  .data-table th {
+    font-size: var(--text-label-md);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-on-primary-container);
+    padding-bottom: 0.5rem;
+  }
+  .data-table tr:hover td {
+    background-color: var(--color-surface-low);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-outline-variant);
+    border-radius: 9999px;
+  }
+}
