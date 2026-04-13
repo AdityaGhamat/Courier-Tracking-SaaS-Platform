@@ -1,335 +1,378 @@
-// apps/web/app/(dashboard)/analytics/page.tsx
-import { cookies } from "next/headers";
+import { serverFetch } from "@/lib/server-api";
+import { getSessionUser } from "@/lib/session";
+import { KpiCard } from "@/components/analytics/kpi-card";
+import { StatusBreakdown } from "@/components/analytics/status-breakdown";
+import { DailyChart } from "@/components/analytics/daily-chart";
+import { WeeklyActivityChart } from "@/components/analytics/weekly-activity-chart";
+import { TopWorkspaces } from "@/components/analytics/top-workspaces";
+import type {
+  WorkspaceAnalytics,
+  PlatformAnalytics,
+  AgentAnalytics,
+} from "@/types/analytics.types";
 
-const BACKEND = process.env.BACKEND_URL ?? "http://localhost:3005";
+// ------------------------------------------------------------------
+// Admin view
+// ------------------------------------------------------------------
+async function AdminAnalytics() {
+  let data: WorkspaceAnalytics | null = null;
+  let error: string | null = null;
 
-async function serverFetch(path: string, cookieHeader: string) {
-  const res = await fetch(`${BACKEND}/api/v1/${path}`, {
-    headers: { cookie: cookieHeader },
-    cache: "no-store",
-  });
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.data;
-}
+  try {
+    const res = await serverFetch<{ data: WorkspaceAnalytics }>(
+      "analytics/workspace",
+    );
+    data = res.data;
+  } catch (e: any) {
+    error = e?.message ?? "Failed to load analytics";
+  }
 
-function StatCard({
-  label,
-  value,
-  color = "text-[var(--color-text)]",
-}: {
-  label: string;
-  value: number | string;
-  color?: string;
-}) {
+  if (error || !data) {
+    return <ErrorBanner message={error ?? "No data"} />;
+  }
+
+  const deliveryRate =
+    data.shipments.total > 0
+      ? ((data.shipments.delivered / data.shipments.total) * 100).toFixed(1)
+      : "0.0";
+
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-5 flex flex-col gap-1">
-      <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider">
-        {label}
-      </span>
-      <span className={`text-2xl font-semibold tabular-nums ${color}`}>
-        {value ?? "—"}
-      </span>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-6)",
+      }}
+    >
+      {/* KPIs */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: "var(--space-4)",
+        }}
+      >
+        <KpiCard
+          label="Total Shipments"
+          value={data.shipments.total}
+          icon="📦"
+          accent="var(--color-text)"
+        />
+        <KpiCard
+          label="Delivered"
+          value={data.shipments.delivered}
+          icon="✅"
+          accent="var(--color-success)"
+        />
+        <KpiCard
+          label="In Transit"
+          value={data.shipments.inTransit}
+          icon="🚚"
+          accent="var(--color-orange)"
+        />
+        <KpiCard
+          label="Out for Delivery"
+          value={data.shipments.outForDelivery}
+          icon="🛵"
+          accent="var(--color-primary)"
+        />
+        <KpiCard
+          label="Failed"
+          value={data.shipments.failed}
+          icon="❌"
+          accent="var(--color-error)"
+        />
+        <KpiCard
+          label="Delivery Rate"
+          value={`${deliveryRate}%`}
+          icon="📊"
+          accent="var(--color-success)"
+          sub="of all shipments delivered"
+        />
+        <KpiCard
+          label="Agents"
+          value={data.agents}
+          icon="🚴"
+          accent="var(--color-blue)"
+        />
+        <KpiCard
+          label="Customers"
+          value={data.customers}
+          icon="👤"
+          accent="var(--color-purple)"
+        />
+      </div>
+
+      {/* Charts */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "var(--space-4)",
+        }}
+      >
+        <DailyChart data={data.dailyShipments} />
+        <StatusBreakdown stats={data.shipments} />
+      </div>
     </div>
   );
 }
 
-export default async function AnalyticsPage() {
-  const cookieStore = await cookies();
-  const sessionKey = cookieStore.get("session_key")?.value;
-  const refreshKey = cookieStore.get("refresh_key")?.value;
-  const cookieHeader = [
-    sessionKey ? `session_key=${sessionKey}` : "",
-    refreshKey ? `refresh_key=${refreshKey}` : "",
-  ]
-    .filter(Boolean)
-    .join("; ");
+// ------------------------------------------------------------------
+// Super Admin view
+// ------------------------------------------------------------------
+async function SuperAdminAnalytics() {
+  let data: PlatformAnalytics | null = null;
+  let error: string | null = null;
 
-  // Fetch user first to determine role
-  const meData = await serverFetch("auth/me", cookieHeader);
-  const role = meData?.user?.role;
-
-  let data: any = null;
-  let analyticsType: "workspace" | "platform" | "agent" | null = null;
-
-  if (role === "admin") {
-    data = await serverFetch("analytics/workspace", cookieHeader);
-    analyticsType = "workspace";
-  } else if (role === "super_admin") {
-    data = await serverFetch("analytics/platform", cookieHeader);
-    analyticsType = "platform";
-  } else if (role === "delivery_agent") {
-    data = await serverFetch("analytics/agent", cookieHeader);
-    analyticsType = "agent";
+  try {
+    const res = await serverFetch<{ data: PlatformAnalytics }>(
+      "analytics/platform",
+    );
+    data = res.data;
+  } catch (e: any) {
+    error = e?.message ?? "Failed to load platform analytics";
   }
 
-  if (!data) {
-    return (
-      <div className="p-8 text-[var(--color-text-muted)]">
-        Could not load analytics. Please try again.
-      </div>
-    );
+  if (error || !data) {
+    return <ErrorBanner message={error ?? "No data"} />;
   }
 
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-[var(--content-wide)] mx-auto">
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-6)",
+      }}
+    >
+      {/* KPIs */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: "var(--space-4)",
+        }}
+      >
+        <KpiCard
+          label="Total Shipments"
+          value={data.shipments.total}
+          icon="📦"
+          accent="var(--color-text)"
+        />
+        <KpiCard
+          label="Delivered"
+          value={data.shipments.delivered}
+          icon="✅"
+          accent="var(--color-success)"
+        />
+        <KpiCard
+          label="In Transit"
+          value={data.shipments.inTransit}
+          icon="🚚"
+          accent="var(--color-orange)"
+        />
+        <KpiCard
+          label="Failed"
+          value={data.shipments.failed}
+          icon="❌"
+          accent="var(--color-error)"
+        />
+        <KpiCard
+          label="Workspaces"
+          value={data.workspaces}
+          icon="🏢"
+          accent="var(--color-blue)"
+        />
+        <KpiCard
+          label="Total Users"
+          value={data.users}
+          icon="👥"
+          accent="var(--color-purple)"
+        />
+      </div>
+
+      {/* Charts */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "var(--space-4)",
+        }}
+      >
+        <DailyChart
+          data={data.dailyShipments}
+          title="Platform Shipments (Last 30 Days)"
+        />
+        <TopWorkspaces data={data.topWorkspaces} />
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------
+// Agent view
+// ------------------------------------------------------------------
+async function AgentAnalyticsView() {
+  let data: AgentAnalytics | null = null;
+  let error: string | null = null;
+
+  try {
+    const res = await serverFetch<{ data: AgentAnalytics }>("analytics/agent");
+    data = res.data;
+  } catch (e: any) {
+    error = e?.message ?? "Failed to load agent analytics";
+  }
+
+  if (error || !data) {
+    return <ErrorBanner message={error ?? "No data"} />;
+  }
+
+  const successRate =
+    data.stats.total > 0
+      ? ((data.stats.delivered / data.stats.total) * 100).toFixed(1)
+      : "0.0";
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-6)",
+      }}
+    >
+      {/* KPIs */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: "var(--space-4)",
+        }}
+      >
+        <KpiCard
+          label="Assigned Total"
+          value={data.stats.total}
+          icon="📦"
+          accent="var(--color-text)"
+        />
+        <KpiCard
+          label="Delivered"
+          value={data.stats.delivered}
+          icon="✅"
+          accent="var(--color-success)"
+        />
+        <KpiCard
+          label="Out for Delivery"
+          value={data.stats.outForDelivery}
+          icon="🛵"
+          accent="var(--color-primary)"
+        />
+        <KpiCard
+          label="In Transit"
+          value={data.stats.inTransit}
+          icon="🚚"
+          accent="var(--color-orange)"
+        />
+        <KpiCard
+          label="Failed"
+          value={data.stats.failed}
+          icon="❌"
+          accent="var(--color-error)"
+        />
+        <KpiCard
+          label="Success Rate"
+          value={`${successRate}%`}
+          icon="🎯"
+          accent="var(--color-success)"
+          sub="of assigned deliveries"
+        />
+      </div>
+
+      {/* Weekly chart */}
+      <div style={{ maxWidth: "600px" }}>
+        <WeeklyActivityChart data={data.weeklyActivity} />
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------
+// Shared error banner
+// ------------------------------------------------------------------
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <div
+      style={{
+        padding: "var(--space-4)",
+        borderRadius: "var(--radius-md)",
+        background: "var(--color-error-highlight)",
+        color: "var(--color-error)",
+        fontSize: "var(--text-sm)",
+        fontWeight: 500,
+      }}
+    >
+      {message}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------
+// Main page — role switch
+// ------------------------------------------------------------------
+export default async function AnalyticsPage() {
+  const user = await getSessionUser();
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-6)",
+      }}
+    >
       <div>
-        <h1 className="text-xl font-semibold text-[var(--color-text)]">
+        <h1
+          style={{
+            fontSize: "var(--text-xl)",
+            fontWeight: 700,
+            color: "var(--color-text)",
+          }}
+        >
           Analytics
         </h1>
-        <p className="text-sm text-[var(--color-text-muted)] mt-1">
-          {analyticsType === "workspace" &&
-            "Your workspace performance overview"}
-          {analyticsType === "platform" && "Platform-wide metrics"}
-          {analyticsType === "agent" && "Your personal delivery stats"}
+        <p
+          style={{
+            fontSize: "var(--text-sm)",
+            color: "var(--color-text-muted)",
+            marginTop: "var(--space-1)",
+          }}
+        >
+          {user?.role === "super_admin"
+            ? "Platform-wide overview"
+            : user?.role === "delivery_agent"
+              ? "Your personal delivery stats"
+              : "Workspace performance dashboard"}
         </p>
       </div>
 
-      {/* ── ADMIN: Workspace Analytics ─────────────────── */}
-      {analyticsType === "workspace" && (
-        <>
-          <section>
-            <h2 className="text-sm font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-              Shipments
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              <StatCard label="Total" value={data.shipments?.total} />
-              <StatCard
-                label="Delivered"
-                value={data.shipments?.delivered}
-                color="text-[var(--color-success)]"
-              />
-              <StatCard
-                label="In Transit"
-                value={data.shipments?.inTransit}
-                color="text-[var(--color-blue)]"
-              />
-              <StatCard
-                label="Out for Delivery"
-                value={data.shipments?.outForDelivery}
-                color="text-[var(--color-orange)]"
-              />
-              <StatCard
-                label="Pending"
-                value={data.shipments?.pending}
-                color="text-[var(--color-gold)]"
-              />
-              <StatCard
-                label="Failed"
-                value={data.shipments?.failed}
-                color="text-[var(--color-error)]"
-              />
-            </div>
-          </section>
+      {user?.role === "super_admin" && <SuperAdminAnalytics />}
+      {user?.role === "admin" && <AdminAnalytics />}
+      {user?.role === "delivery_agent" && <AgentAnalyticsView />}
 
-          <section>
-            <h2 className="text-sm font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-              Team
-            </h2>
-            <div className="grid grid-cols-2 gap-3 max-w-xs">
-              <StatCard label="Agents" value={data.agents} />
-              <StatCard label="Customers" value={data.customers} />
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-sm font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-              Daily Shipments — Last 30 Days
-            </h2>
-            <DailyChart data={data.dailyShipments} />
-          </section>
-        </>
+      {!["super_admin", "admin", "delivery_agent"].includes(
+        user?.role ?? "",
+      ) && (
+        <div
+          style={{
+            padding: "var(--space-8)",
+            textAlign: "center",
+            color: "var(--color-text-muted)",
+            fontSize: "var(--text-sm)",
+          }}
+        >
+          Analytics are not available for your role.
+        </div>
       )}
-
-      {/* ── SUPER ADMIN: Platform Analytics ────────────── */}
-      {analyticsType === "platform" && (
-        <>
-          <section>
-            <h2 className="text-sm font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-              Platform Overview
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatCard label="Total Shipments" value={data.shipments?.total} />
-              <StatCard
-                label="Delivered"
-                value={data.shipments?.delivered}
-                color="text-[var(--color-success)]"
-              />
-              <StatCard label="Workspaces" value={data.workspaces} />
-              <StatCard label="Total Users" value={data.users} />
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-sm font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-              Top Workspaces by Shipments
-            </h2>
-            <div className="rounded-lg border border-[var(--color-border)] overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">
-                  <tr>
-                    <th className="text-left px-4 py-2 font-medium">#</th>
-                    <th className="text-left px-4 py-2 font-medium">
-                      Workspace
-                    </th>
-                    <th className="text-right px-4 py-2 font-medium">
-                      Shipments
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-divider)]">
-                  {data.topWorkspaces?.map((w: any, i: number) => (
-                    <tr
-                      key={w.workspaceId}
-                      className="bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)] transition-colors"
-                    >
-                      <td className="px-4 py-3 text-[var(--color-text-faint)] tabular-nums">
-                        {i + 1}
-                      </td>
-                      <td className="px-4 py-3 font-medium">
-                        {w.workspaceName ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {w.total}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-sm font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-              Daily Shipments — Last 30 Days
-            </h2>
-            <DailyChart data={data.dailyShipments} />
-          </section>
-        </>
-      )}
-
-      {/* ── AGENT: Personal Analytics ──────────────────── */}
-      {analyticsType === "agent" && (
-        <>
-          <section>
-            <h2 className="text-sm font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-              Your Deliveries
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <StatCard label="Total Assigned" value={data.stats?.total} />
-              <StatCard
-                label="Delivered"
-                value={data.stats?.delivered}
-                color="text-[var(--color-success)]"
-              />
-              <StatCard
-                label="In Transit"
-                value={data.stats?.inTransit}
-                color="text-[var(--color-blue)]"
-              />
-              <StatCard
-                label="Out for Delivery"
-                value={data.stats?.outForDelivery}
-                color="text-[var(--color-orange)]"
-              />
-              <StatCard
-                label="Failed"
-                value={data.stats?.failed}
-                color="text-[var(--color-error)]"
-              />
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-sm font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
-              Weekly Activity — Last 7 Days
-            </h2>
-            <div className="rounded-lg border border-[var(--color-border)] overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">
-                  <tr>
-                    <th className="text-left px-4 py-2 font-medium">Date</th>
-                    <th className="text-right px-4 py-2 font-medium text-[var(--color-success)]">
-                      Delivered
-                    </th>
-                    <th className="text-right px-4 py-2 font-medium text-[var(--color-error)]">
-                      Failed
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-divider)]">
-                  {data.weeklyActivity?.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={3}
-                        className="px-4 py-6 text-center text-[var(--color-text-muted)]"
-                      >
-                        No activity this week
-                      </td>
-                    </tr>
-                  )}
-                  {data.weeklyActivity?.map((row: any) => (
-                    <tr
-                      key={row.date}
-                      className="bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)] transition-colors"
-                    >
-                      <td className="px-4 py-3">{row.date}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-[var(--color-success)]">
-                        {row.delivered}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-[var(--color-error)]">
-                        {row.failed}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ── Simple CSS bar chart — no library needed ───────────────
-function DailyChart({ data }: { data: { date: string; total: number }[] }) {
-  if (!data || data.length === 0) {
-    return (
-      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-8 text-center text-sm text-[var(--color-text-muted)]">
-        No data for this period
-      </div>
-    );
-  }
-
-  const max = Math.max(...data.map((d) => Number(d.total)), 1);
-
-  return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <div className="flex items-end gap-1 h-32 overflow-x-auto">
-        {data.map((d) => {
-          const height = Math.max((Number(d.total) / max) * 100, 4);
-          const shortDate = d.date?.slice(5); // MM-DD
-          return (
-            <div
-              key={d.date}
-              className="flex flex-col items-center gap-1 flex-1 min-w-[20px] group"
-            >
-              <span className="text-[10px] text-[var(--color-text-faint)] opacity-0 group-hover:opacity-100 transition-opacity tabular-nums">
-                {d.total}
-              </span>
-              <div
-                style={{ height: `${height}%` }}
-                className="w-full rounded-sm bg-[var(--color-primary)] opacity-80 hover:opacity-100 transition-opacity"
-                title={`${d.date}: ${d.total} shipments`}
-              />
-              <span className="text-[9px] text-[var(--color-text-faint)] rotate-45 origin-left hidden md:block">
-                {shortDate}
-              </span>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

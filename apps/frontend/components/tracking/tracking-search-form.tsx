@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { TrackingProgressBar } from "@/components/tracking/tracking-progress-bar";
-import { TrackingHistory } from "@/components/tracking/tracking-history";
+import { TrackingProgressBar } from "./tracking-progress-bar";
+import { TrackingHistory } from "./tracking-history";
 import type { TrackingResult } from "@/types/tracking.types";
 
-export default function DashboardTrackingPage() {
+export function TrackingSearchForm() {
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<TrackingResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,6 +25,7 @@ export default function DashboardTrackingPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.message ?? "Shipment not found");
+      // Backend wraps in { data: { ... } }
       setResult(json?.data ?? json);
     } catch (err: any) {
       setError(err?.message ?? "Something went wrong");
@@ -39,32 +40,9 @@ export default function DashboardTrackingPage() {
         display: "flex",
         flexDirection: "column",
         gap: "var(--space-6)",
-        maxWidth: "640px",
       }}
     >
-      {/* Header */}
-      <div>
-        <h1
-          style={{
-            fontSize: "var(--text-xl)",
-            fontWeight: 700,
-            color: "var(--color-text)",
-          }}
-        >
-          Track Shipment
-        </h1>
-        <p
-          style={{
-            fontSize: "var(--text-sm)",
-            color: "var(--color-text-muted)",
-            marginTop: "var(--space-1)",
-          }}
-        >
-          Look up any shipment by tracking number
-        </p>
-      </div>
-
-      {/* Search */}
+      {/* Search bar */}
       <form
         onSubmit={handleSubmit}
         style={{ display: "flex", gap: "var(--space-3)" }}
@@ -100,10 +78,11 @@ export default function DashboardTrackingPage() {
             border: "none",
             cursor: loading ? "wait" : "pointer",
             opacity: loading || !query.trim() ? 0.6 : 1,
+            transition: "opacity 150ms ease",
             whiteSpace: "nowrap",
           }}
         >
-          {loading ? "Searching…" : "Track"}
+          {loading ? "Tracking…" : "Track"}
         </button>
       </form>
 
@@ -123,7 +102,7 @@ export default function DashboardTrackingPage() {
         </div>
       )}
 
-      {/* Result */}
+      {/* Result card */}
       {result && (
         <div
           style={{
@@ -133,7 +112,7 @@ export default function DashboardTrackingPage() {
             overflow: "hidden",
           }}
         >
-          {/* Header */}
+          {/* Header strip */}
           <div
             style={{
               background: "var(--color-primary)",
@@ -171,7 +150,7 @@ export default function DashboardTrackingPage() {
             </p>
           </div>
 
-          {/* Progress bar */}
+          {/* Progress */}
           <div
             style={{
               padding: "var(--space-6)",
@@ -181,7 +160,7 @@ export default function DashboardTrackingPage() {
             <TrackingProgressBar currentStatus={result.currentStatus} />
           </div>
 
-          {/* Meta */}
+          {/* Meta row */}
           <div
             style={{
               padding: "var(--space-4) var(--space-6)",
@@ -232,7 +211,7 @@ export default function DashboardTrackingPage() {
                     letterSpacing: "0.05em",
                   }}
                 >
-                  Assigned Agent
+                  Delivery Agent
                 </p>
                 <p
                   style={{
@@ -263,26 +242,6 @@ export default function DashboardTrackingPage() {
             </p>
             <TrackingHistory history={result.history} />
           </div>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!result && !error && !loading && (
-        <div
-          style={{
-            padding: "var(--space-16)",
-            textAlign: "center",
-            color: "var(--color-text-faint)",
-            border: "1px dashed var(--color-border)",
-            borderRadius: "var(--radius-xl)",
-          }}
-        >
-          <div style={{ fontSize: "2.5rem", marginBottom: "var(--space-3)" }}>
-            🔍
-          </div>
-          <p style={{ fontSize: "var(--text-sm)", fontWeight: 500 }}>
-            Enter a tracking number above
-          </p>
         </div>
       )}
     </div>

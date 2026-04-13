@@ -1,28 +1,29 @@
+import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import type { User } from "@/types";
 
-export async function getUserFromCookie(
-  sessionToken: string,
-): Promise<User | null> {
+export interface SessionUser {
+  id: string;
+  role: "admin" | "customer" | "delivery_agent" | "super_admin";
+  workspaceId: string;
+}
+
+export async function getSessionUser(): Promise<SessionUser | null> {
   try {
-    const secret = new TextEncoder().encode(process.env.COOKIE_SECRET_KEY!);
+    const cookieStore = await cookies();
+    const token = cookieStore.get("session_key")?.value;
+    if (!token) return null;
 
-    const { payload } = await jwtVerify(sessionToken, secret, {
-      algorithms: ["HS256"],
-    });
-
-    if (!payload.id || !payload.role) return null;
+    const secret = new TextEncoder().encode(
+      process.env.COOKIE_SECRET_KEY ?? "fallback-dev-secret",
+    );
+    const { payload } = await jwtVerify(token, secret);
 
     return {
       id: payload.id as string,
-      role: payload.role as User["role"],
-      workspaceId: payload.workspaceId as string | null | undefined,
-      // name & email resolved separately via serverFetch if needed
-      name: "",
-      email: "",
+      role: payload.role as SessionUser["role"],
+      workspaceId: payload.workspaceId as string,
     };
-  } catch (err) {
-    console.error("[session] JWT verify failed:", err);
+  } catch {
     return null;
   }
 }
