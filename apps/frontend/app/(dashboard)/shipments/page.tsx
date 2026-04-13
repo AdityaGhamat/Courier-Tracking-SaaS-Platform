@@ -58,9 +58,23 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
   const totalPages = result?.totalPages ?? 1;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-6)",
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "var(--space-4)",
+        }}
+      >
         <div>
           <h1
             style={{

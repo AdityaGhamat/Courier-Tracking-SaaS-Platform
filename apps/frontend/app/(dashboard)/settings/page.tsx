@@ -195,39 +195,6 @@ export default function SettingsPage() {
             {user?.role?.replace("_", " ") ?? "—"}
           </span>
         </div>
-
-        {/* Workspace row */}
-        {user?.workspaceId && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "var(--space-2) 0",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-2)",
-                color: "var(--color-text-muted)",
-              }}
-            >
-              {ShieldIcon}
-              <span style={{ fontSize: "var(--text-sm)" }}>Workspace ID</span>
-            </div>
-            <span
-              style={{
-                fontFamily: "monospace",
-                fontSize: "var(--text-xs)",
-                color: "var(--color-text-muted)",
-              }}
-            >
-              {user.workspaceId.slice(0, 8)}…
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Logout button */}

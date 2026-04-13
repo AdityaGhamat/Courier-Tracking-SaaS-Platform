@@ -3,16 +3,22 @@ import { cookies } from "next/headers";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:3005";
 
+// All HTTP methods map to the same handler
 async function handler(
   req: NextRequest,
-  context: { params: Promise<{ path: string[] }> },
+  { params }: { params: Promise<{ path: string[] }> },
 ) {
-  const { path } = await context.params;
-  const joined = path.join("/");
-  const search = req.nextUrl.search ?? "";
-  const backendUrl = `${BACKEND_URL}/api/v1/${joined}${search}`;
+  const { path } = await params;
+  const segments = path.join("/");
 
-  // Forward cookies from browser → backend
+  // Build the backend URL: /api/proxy/auth/login → BACKEND_URL/api/v1/auth/login
+  const backendPath = `${BACKEND_URL}/api/v1/${segments}`;
+
+  // Forward query params
+  const search = req.nextUrl.search;
+  const targetUrl = `${backendPath}${search}`;
+
+  // Forward the session cookies from the incoming browser request
   const cookieStore = await cookies();
   const sessionKey = cookieStore.get("session_key")?.value;
   const refreshKey = cookieStore.get("refresh_key")?.value;
@@ -24,68 +30,56 @@ async function handler(
     .filter(Boolean)
     .join("; ");
 
-  const forwardHeaders = new Headers();
-  forwardHeaders.set("content-type", "application/json");
-  if (cookieHeader) forwardHeaders.set("cookie", cookieHeader);
+  // Read the body only for methods that have one
+  const hasBody = ["POST", "PUT", "PATCH"].includes(req.method);
+  const body = hasBody ? await req.text() : undefined;
 
-  const body =
-    req.method !== "GET" && req.method !== "HEAD"
-      ? await req.text()
-      : undefined;
-
-  let backendRes: Response;
-  try {
-    backendRes = await fetch(backendUrl, {
-      method: req.method,
-      headers: forwardHeaders,
-      body,
-    });
-  } catch {
-    return NextResponse.json(
-      { message: "Backend unreachable" },
-      { status: 502 },
-    );
-  }
-
-  const responseText = await backendRes.text();
-
-  const response = new NextResponse(responseText, {
-    status: backendRes.status,
-    headers: { "content-type": "application/json" },
+  const backendRes = await fetch(targetUrl, {
+    method: req.method,
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json",
+      ...(cookieHeader ? { cookie: cookieHeader } : {}),
+    },
+    ...(body ? { body } : {}),
+    // Don't follow redirects — proxy them as-is
+    redirect: "manual",
   });
 
-  const setCookies: string[] =
-    (backendRes.headers as any).getSetCookie?.() ??
-    [backendRes.headers.get("set-cookie")].filter(Boolean);
-
-  for (const raw of setCookies) {
-    const [nameValuePart] = raw.split(";");
-    const eqIdx = nameValuePart.indexOf("=");
-    const name = nameValuePart.slice(0, eqIdx).trim();
-    const value = nameValuePart.slice(eqIdx + 1).trim();
-
-    const isSession = name === "session_key";
-    const isRefresh = name === "refresh_key";
-
-    // Only forward the two known auth cookies; ignore anything else
-    if (isSession || isRefresh) {
-      response.cookies.set(name, value, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: isSession ? 60 * 60 : 60 * 60 * 24 * 7, // 1h / 7d
-      });
-    }
+  // Read body
+  const responseText = await backendRes.text();
+  let responseData: unknown;
+  try {
+    responseData = JSON.parse(responseText);
+  } catch {
+    responseData = { message: responseText };
   }
 
-  // Clear cookies on logout
-  if (joined === "auth/logout") {
-    response.cookies.delete("session_key");
-    response.cookies.delete("refresh_key");
+  // Build the Next.js response
+  const nextRes = NextResponse.json(responseData, {
+    status: backendRes.status,
+  });
+
+  // Forward Set-Cookie headers from backend → browser
+  // This is how session_key gets planted on login
+  const setCookieHeader = backendRes.headers.get("set-cookie");
+  if (setCookieHeader) {
+    // Multiple set-cookie headers need to be forwarded individually
+    // Next.js only exposes the first via .get(); use getSetCookie() if available
+    const rawHeaders = backendRes.headers as unknown as {
+      getSetCookie?: () => string[];
+    };
+    const allSetCookies =
+      typeof rawHeaders.getSetCookie === "function"
+        ? rawHeaders.getSetCookie()
+        : [setCookieHeader];
+
+    allSetCookies.forEach((cookieStr) => {
+      nextRes.headers.append("set-cookie", cookieStr);
+    });
   }
 
-  return response;
+  return nextRes;
 }
 
 export const GET = handler;

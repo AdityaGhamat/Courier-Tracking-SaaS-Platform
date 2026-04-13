@@ -1,40 +1,33 @@
-import { serverFetch } from "@/lib/server-api";
-import { AuthProvider } from "@/context/auth-context";
-import { Sidebar } from "@/components/layout/sidebar";
-import type { User } from "@/types";
 import { redirect } from "next/navigation";
-
-async function getMe(): Promise<User | null> {
-  try {
-    const res = await serverFetch<{ data: { user: User } }>("auth/me");
-    return res.data?.user ?? null;
-  } catch {
-    return null;
-  }
-}
+import { serverAuth } from "@/lib/server-api";
+import { AuthProvider } from "@/context/auth-context";
+import { ReactNode } from "react";
 
 export default async function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  const user = await getMe();
-
-  if (!user) redirect("/login");
+  // SSR: fetch the current user. If session_key is invalid/missing,
+  // this throws → we catch and redirect to /login
+  let user = null;
+  try {
+    user = await serverAuth.getMe();
+  } catch (err: unknown) {
+    const statusCode = (err as { statusCode?: number })?.statusCode;
+    // 401 = unauthenticated, 403 = forbidden — send to login
+    if (!statusCode || statusCode === 401 || statusCode === 403) {
+      redirect("/login");
+    }
+    // For 5xx or network errors, still redirect so users aren't stuck
+    redirect("/login");
+  }
 
   return (
     <AuthProvider initialUser={user}>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar user={user} />
-        <main
-          className="flex-1 overflow-y-auto"
-          style={{
-            backgroundColor: "var(--color-bg)",
-            padding: "var(--space-8)",
-          }}
-        >
-          {children}
-        </main>
+      <div style={{ display: "flex", minHeight: "100vh" }}>
+        {/* Your Sidebar goes here — it will receive user via useAuth() */}
+        {children}
       </div>
     </AuthProvider>
   );

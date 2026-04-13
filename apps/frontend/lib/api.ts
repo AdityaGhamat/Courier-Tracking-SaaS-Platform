@@ -27,19 +27,19 @@ async function request<T>(
 
   const res = await fetch(buildUrl(path, params), {
     method,
-    credentials: "include", // sends session_key cookie on every request
-    headers: {
-      "Content-Type": "application/json",
-    },
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
 
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    const error = new Error(data?.message ?? "Something went wrong") as any;
+    const error = new Error(
+      (data as { message?: string })?.message ?? "Something went wrong",
+    ) as Error & { statusCode: number; errors: unknown };
     error.statusCode = res.status;
-    error.errors = data?.errors;
+    error.errors = (data as { errors?: unknown })?.errors;
     throw error;
   }
 
@@ -54,6 +54,7 @@ export const authApi = {
     request("auth/register-customer", { method: "POST", body }),
   login: (body: unknown) => request("auth/login", { method: "POST", body }),
   logout: () => request("auth/logout", { method: "POST" }),
+  getMe: () => request("auth/me"), // GET /api/v1/auth/me
   refreshSession: () => request("auth/refresh-session", { method: "POST" }),
 };
 
@@ -63,6 +64,8 @@ export const shipmentsApi = {
     request("shipments", { params }),
   getById: (id: string) => request(`shipments/${id}`),
   create: (body: unknown) => request("shipments", { method: "POST", body }),
+  update: (id: string, body: unknown) =>
+    request(`shipments/${id}`, { method: "PUT", body }),
   updateStatus: (id: string, body: unknown) =>
     request(`shipments/${id}/status`, { method: "POST", body }),
   assignAgent: (id: string, body: unknown) =>
@@ -71,6 +74,7 @@ export const shipmentsApi = {
     params?: Record<string, string | number | boolean | undefined>,
   ) => request("shipments/my/shipments", { params }),
   agentAssigned: () => request("shipments/agent/assigned"),
+  delete: (id: string) => request(`shipments/${id}`, { method: "DELETE" }),
 };
 
 // ── Tracking (public)
@@ -83,15 +87,37 @@ export const hubsApi = {
   list: () => request("hubs"),
   create: (body: unknown) => request("hubs", { method: "POST", body }),
   getById: (id: string) => request(`hubs/${id}`),
+  update: (id: string, body: unknown) =>
+    request(`hubs/${id}`, { method: "PUT", body }),
+  delete: (id: string) => request(`hubs/${id}`, { method: "DELETE" }),
 };
 
 // ── Vehicles
 export const vehiclesApi = {
   list: () => request("vehicles"),
   create: (body: unknown) => request("vehicles", { method: "POST", body }),
+  update: (id: string, body: unknown) =>
+    request(`vehicles/${id}`, { method: "PUT", body }),
+  delete: (id: string) => request(`vehicles/${id}`, { method: "DELETE" }),
+};
+
+// ── Agents
+export const agentsApi = {
+  list: () => request("agents"),
+  create: (body: unknown) => request("agents", { method: "POST", body }),
+  getById: (id: string) => request(`agents/${id}`),
+  update: (id: string, body: unknown) =>
+    request(`agents/${id}`, { method: "PUT", body }),
 };
 
 // ── Analytics
 export const analyticsApi = {
   getDashboard: () => request("analytics"),
+};
+
+// ── Payments
+export const paymentsApi = {
+  list: (params?: Record<string, string | number | boolean | undefined>) =>
+    request("payments", { params }),
+  getById: (id: string) => request(`payments/${id}`),
 };
