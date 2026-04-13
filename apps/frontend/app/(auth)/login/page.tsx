@@ -1,116 +1,312 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import Link from "next/link";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
+import { authApi } from "@/lib/api";
+import type { AuthResponse } from "@/types";
+
+const loginSchema = z.object({
+  email: z.string().email("Enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
+  const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [serverError, setServerError] = useState("");
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+
+  async function onSubmit(data: LoginForm) {
+    setServerError("");
     try {
-      await login(email, password);
-      // AuthContext.login() handles redirect to /dashboard
+      // Direct fetch → proxy → Express → sets session_key cookie
+      const res = (await authApi.login(data)) as {
+        data: AuthResponse;
+        message: string;
+      };
+
+      // Store user in context (no extra getMe round-trip)
+      login(res.data.user);
+
+      // Role-based redirect
+      const role = res.data.user.role;
+      if (role === "super_admin") router.push("/super-admin");
+      else if (role === "delivery_agent") router.push("/agent");
+      else router.push("/dashboard");
     } catch (err: unknown) {
-      setError((err as { message?: string })?.message ?? "Invalid credentials");
-    } finally {
-      setLoading(false);
+      setServerError(
+        (err as { message?: string })?.message ?? "Invalid email or password",
+      );
     }
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "var(--color-bg, #f7f6f2)",
-      }}
-    >
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          backgroundColor: "var(--color-surface, #fff)",
-          padding: "2rem",
-          borderRadius: "var(--radius-lg, 0.75rem)",
-          boxShadow: "var(--shadow-md)",
-          minWidth: 340,
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem",
-        }}
-      >
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 600, margin: 0 }}>
-          Sign in
-        </h1>
-
-        {error && (
-          <p style={{ color: "var(--color-error, #a12c7b)", margin: 0 }}>
-            {error}
-          </p>
-        )}
-
-        <label
-          style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}
-        >
-          <span>Email</span>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-1">
+        {/* Mobile logo */}
+        <div className="flex items-center gap-2 mb-6 lg:hidden">
+          <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+            <rect width="36" height="36" rx="8" fill="#fd761a" />
+            <path
+              d="M8 18 L18 8 L28 18 L28 28 L8 28 Z"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            <circle cx="18" cy="20" r="4" fill="white" />
+          </svg>
+          <span
+            className="font-bold"
             style={{
-              padding: "0.5rem 0.75rem",
-              border: "1px solid var(--color-border, #d4d1ca)",
-              borderRadius: "var(--radius-md, 0.5rem)",
-              fontSize: "1rem",
+              fontFamily: "var(--font-display)",
+              fontSize: "var(--text-title-md)",
+              color: "var(--color-primary)",
             }}
-          />
-        </label>
+          >
+            LogisticsEngine
+          </span>
+        </div>
 
-        <label
-          style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}
-        >
-          <span>Password</span>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{
-              padding: "0.5rem 0.75rem",
-              border: "1px solid var(--color-border, #d4d1ca)",
-              borderRadius: "var(--radius-md, 0.5rem)",
-              fontSize: "1rem",
-            }}
-          />
-        </label>
-
-        <button
-          type="submit"
-          disabled={loading}
+        <h2
+          className="font-bold"
           style={{
-            padding: "0.625rem 1rem",
-            backgroundColor: "var(--color-primary, #01696f)",
-            color: "#fff",
-            border: "none",
-            borderRadius: "var(--radius-md, 0.5rem)",
-            fontSize: "1rem",
-            fontWeight: 500,
-            cursor: loading ? "not-allowed" : "pointer",
-            opacity: loading ? 0.7 : 1,
+            fontFamily: "var(--font-display)",
+            fontSize: "var(--text-headline-sm)",
+            color: "var(--color-on-surface)",
+            letterSpacing: "-0.015em",
           }}
         >
-          {loading ? "Signing in…" : "Sign in"}
+          Welcome back
+        </h2>
+        <p
+          style={{
+            fontSize: "var(--text-body-md)",
+            color: "var(--color-on-surface-variant)",
+          }}
+        >
+          Sign in to your workspace
+        </p>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {serverError && (
+          <div
+            className="rounded-lg px-4 py-3"
+            style={{
+              backgroundColor: "var(--color-error-container)",
+              color: "var(--color-on-error-container)",
+              fontSize: "var(--text-body-md)",
+            }}
+          >
+            {serverError}
+          </div>
+        )}
+
+        {/* Email */}
+        <div className="space-y-1.5">
+          <label
+            htmlFor="email"
+            className="block font-medium uppercase tracking-wider"
+            style={{
+              fontSize: "var(--text-label-md)",
+              color: "var(--color-on-surface-variant)",
+            }}
+          >
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="admin@yourcompany.com"
+            {...register("email")}
+            className="w-full px-4 py-3 rounded-lg outline-none transition-all"
+            style={{
+              backgroundColor: "var(--color-surface-low)",
+              color: "var(--color-on-surface)",
+              fontSize: "var(--text-body-md)",
+              border: errors.email
+                ? "1.5px solid var(--color-error)"
+                : "1.5px solid transparent",
+            }}
+            onFocus={(e) => {
+              if (!errors.email)
+                e.currentTarget.style.borderColor =
+                  "var(--color-secondary-container)";
+            }}
+            onBlur={(e) => {
+              if (!errors.email)
+                e.currentTarget.style.borderColor = "transparent";
+            }}
+          />
+          {errors.email && (
+            <p
+              style={{
+                fontSize: "var(--text-body-sm)",
+                color: "var(--color-error)",
+              }}
+            >
+              {errors.email.message}
+            </p>
+          )}
+        </div>
+
+        {/* Password */}
+        <div className="space-y-1.5">
+          <label
+            htmlFor="password"
+            className="block font-medium uppercase tracking-wider"
+            style={{
+              fontSize: "var(--text-label-md)",
+              color: "var(--color-on-surface-variant)",
+            }}
+          >
+            Password
+          </label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              {...register("password")}
+              className="w-full px-4 py-3 pr-12 rounded-lg outline-none transition-all"
+              style={{
+                backgroundColor: "var(--color-surface-low)",
+                color: "var(--color-on-surface)",
+                fontSize: "var(--text-body-md)",
+                border: errors.password
+                  ? "1.5px solid var(--color-error)"
+                  : "1.5px solid transparent",
+              }}
+              onFocus={(e) => {
+                if (!errors.password)
+                  e.currentTarget.style.borderColor =
+                    "var(--color-secondary-container)";
+              }}
+              onBlur={(e) => {
+                if (!errors.password)
+                  e.currentTarget.style.borderColor = "transparent";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded"
+              style={{ color: "var(--color-on-surface-variant)" }}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+          {errors.password && (
+            <p
+              style={{
+                fontSize: "var(--text-body-sm)",
+                color: "var(--color-error)",
+              }}
+            >
+              {errors.password.message}
+            </p>
+          )}
+        </div>
+
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="btn-kinetic w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "var(--text-body-md)",
+            marginTop: "0.5rem",
+          }}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            "Sign In"
+          )}
         </button>
       </form>
+
+      {/* Footer links */}
+      <div className="space-y-4">
+        <div
+          className="relative flex items-center gap-4"
+          style={{ color: "var(--color-outline-variant)" }}
+        >
+          <div
+            className="flex-1 h-px"
+            style={{
+              backgroundColor: "var(--color-outline-variant)",
+              opacity: 0.4,
+            }}
+          />
+          <span style={{ fontSize: "var(--text-label-md)" }}>OR</span>
+          <div
+            className="flex-1 h-px"
+            style={{
+              backgroundColor: "var(--color-outline-variant)",
+              opacity: 0.4,
+            }}
+          />
+        </div>
+
+        <p
+          className="text-center"
+          style={{
+            fontSize: "var(--text-body-md)",
+            color: "var(--color-on-surface-variant)",
+          }}
+        >
+          New courier company?{" "}
+          <Link
+            href="/register"
+            className="font-semibold transition-opacity hover:opacity-80"
+            style={{ color: "var(--color-secondary-container)" }}
+          >
+            Create a workspace
+          </Link>
+        </p>
+
+        <p
+          className="text-center"
+          style={{
+            fontSize: "var(--text-body-md)",
+            color: "var(--color-on-surface-variant)",
+          }}
+        >
+          Customer tracking your package?{" "}
+          <Link
+            href="/register-customer"
+            className="font-semibold transition-opacity hover:opacity-80"
+            style={{ color: "var(--color-secondary-container)" }}
+          >
+            Register here
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

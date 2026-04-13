@@ -10,72 +10,60 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api";
-
-type User = {
-  id: string;
-  name: string;
-  email: string;
-  role: "tenant" | "customer" | "agent" | string;
-};
+import type { User } from "@/types";
 
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (user: User) => void;
   logout: () => Promise<void>;
-  refresh: () => Promise<void>;
+  setUser: (user: User | null) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({
-  children,
-  initialUser,
-}: {
-  children: ReactNode;
-  initialUser?: User | null;
-}) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(initialUser ?? null);
-  const [loading, setLoading] = useState(!initialUser);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = (await authApi.getMe()) as { data?: User } & User;
-      // Handle both { data: user } and flat user shapes
-      setUser((data as { data?: User }).data ?? (data as User));
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+  // On mount: hit /api/proxy/auth/me to rehydrate user from existing session_key cookie
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = (await authApi.getMe()) as {
+          data: { user: User } | User;
+          message?: string;
+        };
+        if (!cancelled) {
+          // Handle both { data: { user } } and { data: User } response shapes
+          const u = (res.data as { user?: User }).user ?? (res.data as User);
+          setUser(u);
+        }
+      } catch {
+        // No valid session — user stays null, middleware handles redirect
+        if (!cancelled) setUser(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => {
-    // Only fetch if not seeded from server
-    if (!initialUser) {
-      refresh();
-    }
-  }, [initialUser, refresh]);
-
-  const login = useCallback(
-    async (email: string, password: string) => {
-      // POST /api/proxy/auth/login → Express sets session_key cookie
-      await authApi.login({ email, password });
-      // Fetch the user immediately after login
-      await refresh();
-      router.push("/dashboard");
-      router.refresh(); // Invalidate RSC cache so layout re-renders
-    },
-    [refresh, router],
-  );
+  // Called by login page after authApi.login() — no extra fetch needed
+  const login = useCallback((u: User) => {
+    setUser(u);
+    setLoading(false);
+  }, []);
 
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } catch {
-      // Even if the backend call fails, clear client state
+      // swallow
     } finally {
       setUser(null);
       router.push("/login");
@@ -84,7 +72,7 @@ export function AuthProvider({
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refresh }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );

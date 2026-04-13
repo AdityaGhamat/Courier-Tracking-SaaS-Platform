@@ -2,10 +2,24 @@ import { cookies } from "next/headers";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:3005";
 
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  workspaceId?: string;
+};
+
+// Shape returned by SuccessResponse wrapper
+type ApiResponse<T> = {
+  data: T;
+  message: string;
+  success: boolean;
+};
+
 export async function serverFetch<T>(
   path: string,
   options: RequestInit = {},
-  revalidate?: number,
 ): Promise<T> {
   const cookieStore = await cookies();
   const sessionKey = cookieStore.get("session_key")?.value;
@@ -26,30 +40,27 @@ export async function serverFetch<T>(
       ...(cookieHeader ? { cookie: cookieHeader } : {}),
       ...options.headers,
     },
-    next: revalidate !== undefined ? { revalidate } : { revalidate: 0 },
+    next: { revalidate: 0 }, // never cache auth'd data
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({
       message: `Backend error ${res.status}`,
     }));
-    // Throw a plain object so Server Components can pattern-match it
     throw Object.assign(
       new Error((err as { message?: string }).message ?? "Backend error"),
-      {
-        statusCode: res.status,
-        body: err,
-      },
+      { statusCode: res.status, body: err },
     );
   }
 
   return res.json() as Promise<T>;
 }
 
-// Convenience helpers for Server Components
+// ✅ serverAuth.getMe() — used by DashboardLayout (SSR)
+// Controller returns: { data: { user: {...} }, message: "Authenticated user" }
 export const serverAuth = {
-  getMe: () =>
-    serverFetch<{ id: string; name: string; email: string; role: string }>(
-      "auth/me",
-    ),
+  getMe: async (): Promise<User> => {
+    const res = await serverFetch<ApiResponse<{ user: User }>>("auth/me");
+    return res.data.user; // ← unwrap the nested shape
+  },
 };

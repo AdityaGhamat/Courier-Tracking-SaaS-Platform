@@ -54,8 +54,10 @@ export const authApi = {
     request("auth/register-customer", { method: "POST", body }),
   login: (body: unknown) => request("auth/login", { method: "POST", body }),
   logout: () => request("auth/logout", { method: "POST" }),
-  getMe: () => request("auth/me"), // GET /api/v1/auth/me
+  getMe: () => request("auth/me"), // ✅ Added
   refreshSession: () => request("auth/refresh-session", { method: "POST" }),
+  registerAgent: (body: unknown) =>
+    request("auth/register-agent", { method: "POST", body }),
 };
 
 // ── Shipments
@@ -64,8 +66,6 @@ export const shipmentsApi = {
     request("shipments", { params }),
   getById: (id: string) => request(`shipments/${id}`),
   create: (body: unknown) => request("shipments", { method: "POST", body }),
-  update: (id: string, body: unknown) =>
-    request(`shipments/${id}`, { method: "PUT", body }),
   updateStatus: (id: string, body: unknown) =>
     request(`shipments/${id}/status`, { method: "POST", body }),
   assignAgent: (id: string, body: unknown) =>
@@ -74,7 +74,13 @@ export const shipmentsApi = {
     params?: Record<string, string | number | boolean | undefined>,
   ) => request("shipments/my/shipments", { params }),
   agentAssigned: () => request("shipments/agent/assigned"),
-  delete: (id: string) => request(`shipments/${id}`, { method: "DELETE" }),
+  getOptimizedRoute: (
+    agentId: string,
+    params: { hubLat: number; hubLng: number },
+  ) =>
+    request(`shipments/agent/${agentId}/optimized-route`, {
+      params: params as Record<string, number>,
+    }),
 };
 
 // ── Tracking (public)
@@ -101,15 +107,6 @@ export const vehiclesApi = {
   delete: (id: string) => request(`vehicles/${id}`, { method: "DELETE" }),
 };
 
-// ── Agents
-export const agentsApi = {
-  list: () => request("agents"),
-  create: (body: unknown) => request("agents", { method: "POST", body }),
-  getById: (id: string) => request(`agents/${id}`),
-  update: (id: string, body: unknown) =>
-    request(`agents/${id}`, { method: "PUT", body }),
-};
-
 // ── Analytics
 export const analyticsApi = {
   getDashboard: () => request("analytics"),
@@ -120,4 +117,16 @@ export const paymentsApi = {
   list: (params?: Record<string, string | number | boolean | undefined>) =>
     request("payments", { params }),
   getById: (id: string) => request(`payments/${id}`),
+};
+
+// ── Subscriptions
+export const subscriptionsApi = {
+  list: () => request("subscriptions"),
+  getById: (id: string) => request(`subscriptions/${id}`),
+  create: (body: unknown) => request("subscriptions", { method: "POST", body }),
+};
+
+// ── Upload
+export const uploadApi = {
+  upload: (body: unknown) => request("upload", { method: "POST", body }),
 };

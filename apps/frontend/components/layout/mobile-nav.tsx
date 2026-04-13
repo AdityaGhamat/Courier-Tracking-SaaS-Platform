@@ -1,10 +1,9 @@
-// components/layout/mobile-nav.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { User } from "@/types";
+import { useAuth } from "@/context/auth-context";
 
 type NavItem = {
   label: string;
@@ -13,7 +12,6 @@ type NavItem = {
   roles: string[];
 };
 
-// Inline SVG icons — mirrors sidebar.tsx nav items exactly
 const NAV_ITEMS: NavItem[] = [
   {
     label: "Overview",
@@ -223,16 +221,15 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-export function MobileNav({ user }: { user: User }) {
+export function MobileNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
 
-  // Close drawer on route change
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  // Lock body scroll when drawer is open
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => {
@@ -240,13 +237,13 @@ export function MobileNav({ user }: { user: User }) {
     };
   }, [open]);
 
-  const visibleItems = NAV_ITEMS.filter((item) =>
-    item.roles.includes(user.role),
-  );
+  const visibleItems = user
+    ? NAV_ITEMS.filter((item) => item.roles.includes(user.role))
+    : [];
 
   return (
     <>
-      {/* Mobile topbar — only visible on < lg */}
+      {/* Mobile topbar */}
       <header
         style={{
           display: "flex",
@@ -261,7 +258,6 @@ export function MobileNav({ user }: { user: User }) {
         }}
         className="lg:hidden"
       >
-        {/* Logo mark */}
         <div
           style={{
             display: "flex",
@@ -297,7 +293,6 @@ export function MobileNav({ user }: { user: User }) {
           </span>
         </div>
 
-        {/* Hamburger */}
         <button
           onClick={() => setOpen(true)}
           aria-label="Open navigation menu"
@@ -407,8 +402,6 @@ export function MobileNav({ user }: { user: User }) {
               LogisticsEngine
             </span>
           </div>
-
-          {/* Close button */}
           <button
             onClick={() => setOpen(false)}
             aria-label="Close navigation menu"
@@ -452,7 +445,6 @@ export function MobileNav({ user }: { user: User }) {
             const isActive =
               pathname === item.href ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));
-
             return (
               <Link
                 key={item.href}
@@ -461,7 +453,7 @@ export function MobileNav({ user }: { user: User }) {
                   display: "flex",
                   alignItems: "center",
                   gap: "var(--space-3)",
-                  padding: "var(--space-3) var(--space-3)",
+                  padding: "var(--space-3)",
                   borderRadius: "var(--radius-lg)",
                   marginBottom: "var(--space-1)",
                   textDecoration: "none",
@@ -489,69 +481,68 @@ export function MobileNav({ user }: { user: User }) {
           })}
         </nav>
 
-        {/* User badge at bottom */}
+        {/* User badge */}
         <div
           style={{
             padding: "var(--space-4)",
             borderTop: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-3)",
-            }}
-          >
+          {user && (
             <div
               style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "var(--radius-full)",
-                backgroundColor: "rgba(255,255,255,0.15)",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-                fontWeight: 700,
-                fontSize: "var(--text-sm)",
-                flexShrink: 0,
+                gap: "var(--space-3)",
               }}
             >
-              {user.name?.[0]?.toUpperCase() ?? user.role[0].toUpperCase()}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <p
+              <div
                 style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "var(--radius-full)",
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   color: "white",
-                  fontWeight: 500,
+                  fontWeight: 700,
                   fontSize: "var(--text-sm)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  flexShrink: 0,
                 }}
               >
-                {user.name}
-              </p>
-              <p
-                style={{
-                  fontSize: "var(--text-xs)",
-                  color: "rgba(255,255,255,0.45)",
-                  textTransform: "capitalize",
-                }}
-              >
-                {user.role.replace("_", " ")}
-              </p>
+                {user.name?.[0]?.toUpperCase() ?? user.role[0].toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <p
+                  style={{
+                    color: "white",
+                    fontWeight: 500,
+                    fontSize: "var(--text-sm)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {user.name}
+                </p>
+                <p
+                  style={{
+                    fontSize: "var(--text-xs)",
+                    color: "rgba(255,255,255,0.45)",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {user.role.replace("_", " ")}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
     </>
   );

@@ -1,26 +1,16 @@
-// src/components/layout/topbar.tsx
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Search, Bell, LogOut, Menu } from "lucide-react";
-import { useAuth } from "../../context/auth-context";
-import { authApi } from "../../lib/api";
-import type { User } from "../../types";
+import { useAuth } from "@/context/auth-context";
 
-export function Topbar({ user }: { user: User }) {
-  const router = useRouter();
-  const { setUser } = useAuth();
+export function Topbar() {
+  const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
 
   async function handleLogout() {
     setLoggingOut(true);
-    try {
-      await authApi.logout();
-    } finally {
-      setUser(null);
-      router.push("/login");
-    }
+    await logout(); // AuthContext.logout() handles redirect + setUser(null)
   }
 
   return (
@@ -31,7 +21,7 @@ export function Topbar({ user }: { user: User }) {
         borderBottom: "1px solid var(--color-outline-variant)",
       }}
     >
-      {/* Mobile menu placeholder (wired in mobile-nav) */}
+      {/* Mobile menu placeholder (wired in MobileNav) */}
       <button
         className="lg:hidden p-2 rounded-lg"
         style={{ color: "var(--color-on-surface-variant)" }}
@@ -59,7 +49,6 @@ export function Topbar({ user }: { user: User }) {
               color: "var(--color-on-surface)",
             }}
           />
-          {/* Keyboard shortcut hint */}
           <kbd
             className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded"
             style={{
@@ -83,14 +72,12 @@ export function Topbar({ user }: { user: User }) {
           aria-label="Notifications"
         >
           <Bell size={20} />
-          {/* Unread dot */}
           <span
             className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
             style={{ backgroundColor: "var(--color-secondary-container)" }}
           />
         </button>
 
-        {/* Divider */}
         <div
           className="w-px h-6 mx-1"
           style={{ backgroundColor: "var(--color-outline-variant)" }}
@@ -98,36 +85,40 @@ export function Topbar({ user }: { user: User }) {
 
         {/* Avatar + logout */}
         <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold shrink-0"
-            style={{
-              backgroundColor: "var(--color-primary)",
-              fontSize: "var(--text-label-lg)",
-              fontFamily: "var(--font-display)",
-            }}
-          >
-            {user.name?.[0]?.toUpperCase() ?? user.role[0].toUpperCase()}
-          </div>
-          <div className="hidden sm:block">
-            <p
-              className="font-medium leading-tight"
-              style={{
-                fontSize: "var(--text-body-sm)",
-                color: "var(--color-on-surface)",
-              }}
-            >
-              {user.name}
-            </p>
-            <p
-              className="leading-tight capitalize"
-              style={{
-                fontSize: "var(--text-label-sm)",
-                color: "var(--color-on-surface-variant)",
-              }}
-            >
-              {user.role.replace("_", " ")}
-            </p>
-          </div>
+          {user && (
+            <>
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold shrink-0"
+                style={{
+                  backgroundColor: "var(--color-primary)",
+                  fontSize: "var(--text-label-lg)",
+                  fontFamily: "var(--font-display)",
+                }}
+              >
+                {user.name?.[0]?.toUpperCase() ?? user.role[0].toUpperCase()}
+              </div>
+              <div className="hidden sm:block">
+                <p
+                  className="font-medium leading-tight"
+                  style={{
+                    fontSize: "var(--text-body-sm)",
+                    color: "var(--color-on-surface)",
+                  }}
+                >
+                  {user.name}
+                </p>
+                <p
+                  className="leading-tight capitalize"
+                  style={{
+                    fontSize: "var(--text-label-sm)",
+                    color: "var(--color-on-surface-variant)",
+                  }}
+                >
+                  {user.role.replace("_", " ")}
+                </p>
+              </div>
+            </>
+          )}
 
           <button
             onClick={handleLogout}

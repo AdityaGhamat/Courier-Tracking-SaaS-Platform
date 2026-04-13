@@ -39,6 +39,7 @@ class AuthController {
   }
 
   async login(req: Request, res: Response, next: NextFunction) {
+    console.log(req.body);
     try {
       const result = await authService.login(req.body);
 
