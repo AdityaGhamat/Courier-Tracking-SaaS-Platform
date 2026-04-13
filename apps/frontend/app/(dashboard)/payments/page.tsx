@@ -1,32 +1,32 @@
-import { cookies } from "next/headers";
+import { serverFetch } from "@/lib/server-api";
+import { getSessionUser } from "@/lib/session";
 import Link from "next/link";
 
-const BACKEND = process.env.BACKEND_URL ?? "http://localhost:3005";
-
-async function serverFetch(path: string, cookieHeader: string) {
-  const res = await fetch(`${BACKEND}/api/v1/${path}`, {
-    headers: { cookie: cookieHeader },
-    cache: "no-store",
-  });
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.data;
-}
-
-const STATUS_STYLES: Record<string, string> = {
-  paid: "bg-[var(--color-success-highlight)] text-[var(--color-success)]",
-  pending: "bg-[var(--color-gold-highlight)] text-[var(--color-gold)]",
-  failed: "bg-[var(--color-error-highlight)] text-[var(--color-error)]",
-  refunded: "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]",
+const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  paid: { bg: "var(--color-success-highlight)", color: "var(--color-success)" },
+  pending: { bg: "var(--color-gold-highlight)", color: "var(--color-gold)" },
+  failed: { bg: "var(--color-error-highlight)", color: "var(--color-error)" },
+  refunded: {
+    bg: "var(--color-surface-offset)",
+    color: "var(--color-text-muted)",
+  },
 };
 
 function StatusBadge({ status }: { status: string }) {
+  const s = STATUS_STYLES[status] ?? STATUS_STYLES.refunded;
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
-        STATUS_STYLES[status] ??
-        "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]"
-      }`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "var(--space-1) var(--space-3)",
+        borderRadius: "var(--radius-full)",
+        background: s.bg,
+        color: s.color,
+        fontSize: "var(--text-xs)",
+        fontWeight: 600,
+        textTransform: "capitalize",
+      }}
     >
       {status}
     </span>
@@ -36,78 +36,107 @@ function StatusBadge({ status }: { status: string }) {
 export default async function PaymentsPage({
   searchParams,
 }: {
-  searchParams: { page?: string; status?: string };
+  searchParams: Promise<{ page?: string; status?: string }>;
 }) {
-  const cookieStore = await cookies();
-  const sessionKey = cookieStore.get("session_key")?.value;
-  const refreshKey = cookieStore.get("refresh_key")?.value;
-  const cookieHeader = [
-    sessionKey ? `session_key=${sessionKey}` : "",
-    refreshKey ? `refresh_key=${refreshKey}` : "",
-  ]
-    .filter(Boolean)
-    .join("; ");
-
-  const meData = await serverFetch("auth/me", cookieHeader);
-  const role = meData?.user?.role;
-
-  const page = Number(searchParams.page ?? 1);
-  const status = searchParams.status ?? "";
+  const { page: pageParam, status = "" } = await searchParams;
+  const page = Number(pageParam ?? 1);
   const limit = 15;
 
-  let data: any = null;
+  const user = await getSessionUser();
+  const role = user?.role;
 
-  if (role === "admin") {
-    const query = new URLSearchParams({
-      page: String(page),
-      limit: String(limit),
-      ...(status ? { status } : {}),
-    });
-    data = await serverFetch(`payments?${query}`, cookieHeader);
-  } else if (role === "customer") {
-    // Customer flow: they need a parcelId — show a message directing them
-    // to go through their shipments page instead
+  if (role === "customer") {
     return (
-      <div className="p-8 text-center text-[var(--color-text-muted)] text-sm">
+      <div
+        style={{
+          padding: "var(--space-8)",
+          textAlign: "center",
+          fontSize: "var(--text-sm)",
+          color: "var(--color-text-muted)",
+        }}
+      >
         To view your payment history, go to{" "}
         <Link
           href="/shipments"
-          className="text-[var(--color-primary)] underline underline-offset-2"
+          style={{ color: "var(--color-primary)", textDecoration: "underline" }}
         >
           My Shipments
         </Link>{" "}
         and select a shipment.
       </div>
     );
-  } else {
+  }
+
+  if (role !== "admin") {
     return (
-      <div className="p-8 text-[var(--color-text-muted)] text-sm">
+      <div
+        style={{
+          padding: "var(--space-8)",
+          fontSize: "var(--text-sm)",
+          color: "var(--color-text-muted)",
+        }}
+      >
         Payments are not available for your role.
       </div>
     );
   }
 
-  const payments: any[] = data?.payments ?? [];
-  const hasNextPage = payments.length === limit;
+  let payments: any[] = [];
+  try {
+    const query = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+      ...(status ? { status } : {}),
+    });
+    const res = await serverFetch<{ data: { payments: any[] } }>(
+      `payments?${query}`,
+    );
+    payments = res.data?.payments ?? [];
+  } catch {
+    payments = [];
+  }
 
+  const hasNextPage = payments.length === limit;
   const statusFilters = ["", "pending", "paid", "failed", "refunded"];
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-[var(--content-wide)] mx-auto">
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-6)",
+        maxWidth: "var(--content-wide)",
+      }}
+    >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-[var(--color-text)]">
-            Payments
-          </h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">
-            All payment records for your workspace
-          </p>
-        </div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-1)",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "var(--text-xl)",
+            fontWeight: 700,
+            color: "var(--color-text)",
+          }}
+        >
+          Payments
+        </h1>
+        <p
+          style={{
+            fontSize: "var(--text-sm)",
+            color: "var(--color-text-muted)",
+          }}
+        >
+          All payment records for your workspace
+        </p>
       </div>
 
       {/* Status filter tabs */}
-      <div className="flex gap-2 flex-wrap">
+      <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
         {statusFilters.map((s) => {
           const isActive = status === s;
           const params = new URLSearchParams({
@@ -118,11 +147,21 @@ export default async function PaymentsPage({
             <Link
               key={s || "all"}
               href={`/payments?${params}`}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                isActive
-                  ? "bg-[var(--color-primary)] text-white"
-                  : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-dynamic)]"
-              }`}
+              style={{
+                padding: "var(--space-1) var(--space-3)",
+                borderRadius: "var(--radius-full)",
+                fontSize: "var(--text-xs)",
+                fontWeight: 600,
+                textDecoration: "none",
+                background: isActive
+                  ? "var(--color-primary)"
+                  : "var(--color-surface-offset)",
+                color: isActive
+                  ? "var(--color-text-inverse)"
+                  : "var(--color-text-muted)",
+                transition:
+                  "background var(--transition-interactive), color var(--transition-interactive)",
+              }}
             >
               {s ? s.charAt(0).toUpperCase() + s.slice(1) : "All"}
             </Link>
@@ -132,55 +171,127 @@ export default async function PaymentsPage({
 
       {/* Table */}
       {payments.length === 0 ? (
-        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
-          <p className="text-[var(--color-text-muted)] text-sm">
-            No payments found
-            {status ? ` with status "${status}"` : ""}.
-          </p>
+        <div
+          style={{
+            border: "1px dashed var(--color-border)",
+            borderRadius: "var(--radius-lg)",
+            background: "var(--color-surface)",
+            padding: "var(--space-12)",
+            textAlign: "center",
+            color: "var(--color-text-muted)",
+            fontSize: "var(--text-sm)",
+          }}
+        >
+          No payments found{status ? ` with status "${status}"` : ""}.
         </div>
       ) : (
-        <div className="rounded-lg border border-[var(--color-border)] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-[var(--color-surface-offset)]">
-                <tr className="text-[var(--color-text-muted)] text-xs uppercase tracking-wider">
-                  <th className="text-left px-4 py-3 font-medium">
-                    Tracking #
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium">Recipient</th>
-                  <th className="text-right px-4 py-3 font-medium">Amount</th>
-                  <th className="text-left px-4 py-3 font-medium">Currency</th>
-                  <th className="text-left px-4 py-3 font-medium">Status</th>
-                  <th className="text-left px-4 py-3 font-medium">Date</th>
-                  <th className="text-left px-4 py-3 font-medium">Notes</th>
+        <div
+          style={{
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-lg)",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ overflowX: "auto" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: "var(--text-sm)",
+              }}
+            >
+              <thead style={{ background: "var(--color-surface-offset)" }}>
+                <tr>
+                  {[
+                    "Tracking #",
+                    "Recipient",
+                    "Amount",
+                    "Currency",
+                    "Status",
+                    "Date",
+                    "Notes",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: h === "Amount" ? "right" : "left",
+                        padding: "var(--space-3) var(--space-4)",
+                        fontSize: "var(--text-xs)",
+                        fontWeight: 600,
+                        color: "var(--color-text-muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--color-divider)]">
+              <tbody>
                 {payments.map((p: any) => (
                   <tr
                     key={p.id}
-                    className="bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)] transition-colors"
+                    style={{
+                      borderTop: "1px solid var(--color-divider)",
+                      background: "var(--color-surface)",
+                    }}
                   >
-                    <td className="px-4 py-3 font-mono text-xs text-[var(--color-primary)]">
+                    <td
+                      style={{
+                        padding: "var(--space-3) var(--space-4)",
+                        fontFamily: "monospace",
+                        fontSize: "var(--text-xs)",
+                        color: "var(--color-primary)",
+                      }}
+                    >
                       {p.parcel?.trackingNumber ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-[var(--color-text)]">
+                    <td
+                      style={{
+                        padding: "var(--space-3) var(--space-4)",
+                        color: "var(--color-text)",
+                      }}
+                    >
                       {p.parcel?.recipientName ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums font-medium">
+                    <td
+                      style={{
+                        padding: "var(--space-3) var(--space-4)",
+                        textAlign: "right",
+                        fontVariantNumeric: "tabular-nums",
+                        fontWeight: 600,
+                        color: "var(--color-text)",
+                      }}
+                    >
                       {p.amount != null
                         ? Number(p.amount).toLocaleString("en-IN", {
                             minimumFractionDigits: 2,
                           })
                         : "—"}
                     </td>
-                    <td className="px-4 py-3 text-[var(--color-text-muted)] uppercase text-xs">
+                    <td
+                      style={{
+                        padding: "var(--space-3) var(--space-4)",
+                        color: "var(--color-text-muted)",
+                        textTransform: "uppercase",
+                        fontSize: "var(--text-xs)",
+                      }}
+                    >
                       {p.currency ?? "INR"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td style={{ padding: "var(--space-3) var(--space-4)" }}>
                       <StatusBadge status={p.status} />
                     </td>
-                    <td className="px-4 py-3 text-[var(--color-text-muted)] text-xs whitespace-nowrap">
+                    <td
+                      style={{
+                        padding: "var(--space-3) var(--space-4)",
+                        color: "var(--color-text-muted)",
+                        fontSize: "var(--text-xs)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {p.createdAt
                         ? new Date(p.createdAt).toLocaleDateString("en-IN", {
                             day: "2-digit",
@@ -189,7 +300,17 @@ export default async function PaymentsPage({
                           })
                         : "—"}
                     </td>
-                    <td className="px-4 py-3 text-[var(--color-text-muted)] text-xs max-w-[150px] truncate">
+                    <td
+                      style={{
+                        padding: "var(--space-3) var(--space-4)",
+                        color: "var(--color-text-muted)",
+                        fontSize: "var(--text-xs)",
+                        maxWidth: "150px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {p.notes ?? "—"}
                     </td>
                   </tr>
@@ -201,27 +322,42 @@ export default async function PaymentsPage({
       )}
 
       {/* Pagination */}
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-[var(--color-text-muted)]">Page {page}</span>
-        <div className="flex gap-2">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          fontSize: "var(--text-sm)",
+        }}
+      >
+        <span style={{ color: "var(--color-text-muted)" }}>Page {page}</span>
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
           {page > 1 && (
             <Link
-              href={`/payments?${new URLSearchParams({
-                page: String(page - 1),
-                ...(status ? { status } : {}),
-              })}`}
-              className="px-3 py-1.5 rounded-md border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-offset)] transition-colors text-xs"
+              href={`/payments?${new URLSearchParams({ page: String(page - 1), ...(status ? { status } : {}) })}`}
+              style={{
+                padding: "var(--space-1) var(--space-3)",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text)",
+                textDecoration: "none",
+                fontSize: "var(--text-xs)",
+              }}
             >
               ← Previous
             </Link>
           )}
           {hasNextPage && (
             <Link
-              href={`/payments?${new URLSearchParams({
-                page: String(page + 1),
-                ...(status ? { status } : {}),
-              })}`}
-              className="px-3 py-1.5 rounded-md border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-offset)] transition-colors text-xs"
+              href={`/payments?${new URLSearchParams({ page: String(page + 1), ...(status ? { status } : {}) })}`}
+              style={{
+                padding: "var(--space-1) var(--space-3)",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text)",
+                textDecoration: "none",
+                fontSize: "var(--text-xs)",
+              }}
             >
               Next →
             </Link>
