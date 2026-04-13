@@ -11,7 +11,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -20,46 +19,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type {
-  ShipmentStatus,
-  UpdateShipmentStatusInput,
-} from "@/types/shipment.types";
+import type { ShipmentStatus } from "@/types/shipment.types";
 
-const STATUSES: ShipmentStatus[] = [
-  "label_created",
-  "picked_up",
-  "at_sorting_facility",
-  "in_transit",
-  "out_for_delivery",
-  "delivered",
-  "failed",
-  "retry",
-  "returned",
-  "exception",
+const STATUS_OPTIONS: { label: string; value: ShipmentStatus }[] = [
+  { label: "Label Created", value: "label_created" },
+  { label: "Picked Up", value: "picked_up" },
+  { label: "At Sorting Facility", value: "at_sorting_facility" },
+  { label: "In Transit", value: "in_transit" },
+  { label: "Out for Delivery", value: "out_for_delivery" },
+  { label: "Delivered", value: "delivered" },
+  { label: "Failed", value: "failed" },
+  { label: "Retry", value: "retry" },
+  { label: "Returned", value: "returned" },
+  { label: "Exception", value: "exception" },
 ];
 
-export function UpdateStatusDialog({
-  shipmentId,
-  currentStatus,
-}: {
+interface Props {
   shipmentId: string;
   currentStatus: ShipmentStatus;
-}) {
+}
+
+export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState<ShipmentStatus>(currentStatus);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<UpdateShipmentStatusInput>({
-    status: currentStatus,
-    location: "",
-    description: "",
-  });
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setStatus(currentStatus);
+      setError(null);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
-      await shipmentsApi.updateStatus(shipmentId, form);
+      await shipmentsApi.updateStatus(shipmentId, { status });
       setOpen(false);
       router.refresh();
     } catch (err: any) {
@@ -70,78 +70,49 @@ export function UpdateStatusDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button
-          style={{ backgroundColor: "#fd761a", color: "white", border: "none" }}
-        >
-          Update Status
-        </Button>
+        <Button variant="outline">Update Status</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[440px]">
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Update Shipment Status</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label>New Status</Label>
+            <Label htmlFor="status">New Status</Label>
             <Select
-              value={form.status}
-              onValueChange={(val) =>
-                setForm((p) => ({ ...p, status: val as ShipmentStatus }))
-              }
+              value={status}
+              onValueChange={(v) => setStatus(v as ShipmentStatus)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="status">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                {STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s.replace(/_/g, " ")}
+                {STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-col gap-2">
-            <Label>Location</Label>
-            <Input
-              value={form.location}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, location: e.target.value }))
-              }
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label>Description</Label>
-            <Input
-              value={form.description}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, description: e.target.value }))
-              }
-              required
-            />
-          </div>
+
           {error && <p className="text-sm text-destructive">{error}</p>}
+
           <div className="flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => handleOpenChange(false)}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={loading}
-              style={{
-                backgroundColor: "#fd761a",
-                color: "white",
-                border: "none",
-              }}
+              disabled={loading || status === currentStatus}
             >
-              {loading ? "Updating…" : "Update Status"}
+              {loading ? "Saving…" : "Save"}
             </Button>
           </div>
         </form>

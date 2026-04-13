@@ -1,57 +1,57 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap");
 @import "tailwindcss";
 
 @theme {
   /* ── Fonts */
-  --font-display: "Manrope", sans-serif;
+  --font-display: "Bricolage Grotesque", sans-serif;
   --font-body: "Inter", sans-serif;
 
-  /* ── Surface hierarchy (stacked planes system) */
-  --color-surface: #f8f9ff;
-  --color-surface-dim: #d8dae7;
-  --color-surface-low: #eff4ff;
-  --color-surface-high: #d3e4fe;
-  --color-surface-highest: #d3e4fe;
+  /* ── Surface hierarchy */
+  --color-surface: #f8fafc;
+  --color-surface-dim: #e2e8f0;
+  --color-surface-low: #f1f5f9;
+  --color-surface-high: #e0e7ff;
+  --color-surface-highest: #c7d2fe;
   --color-surface-lowest: #ffffff;
 
-  /* ── Primary (deep navy — sidebar anchor) */
-  --color-primary: #091426;
-  --color-primary-container: #1e3a5f;
+  /* ── Primary (deep indigo) */
+  --color-primary: #1e1b4b;
+  --color-primary-container: #312e81;
   --color-on-primary: #ffffff;
-  --color-on-primary-container: #8590a6;
+  --color-on-primary-container: #a5b4fc;
 
-  /* ── Secondary (kinetic orange — CTAs ONLY) */
-  --color-secondary: #9d4300;
-  --color-secondary-container: #fd761a;
+  /* ── Secondary (violet CTA) */
+  --color-secondary: #4f46e5;
+  --color-secondary-container: #6366f1;
   --color-on-secondary: #ffffff;
   --color-on-secondary-container: #ffffff;
 
-  /* ── Tertiary (deep teal — in-transit badge) */
-  --color-tertiary: #002c42;
-  --color-tertiary-container: #003f5e;
+  /* ── Tertiary (cyan accent) */
+  --color-tertiary: #0e7490;
+  --color-tertiary-container: #0891b2;
   --color-on-tertiary: #ffffff;
-  --color-on-tertiary-container: #b3e5fc;
+  --color-on-tertiary-container: #cffafe;
 
   /* ── On-surface text levels */
-  --color-on-surface: #0b1c30;
-  --color-on-surface-variant: #45474c;
-  --color-outline-variant: #c5c6cd;
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #475569;
+  --color-outline-variant: #cbd5e1;
 
   /* ── Semantic: Error */
-  --color-error: #ba1a1a;
-  --color-error-container: #ffdad6;
+  --color-error: #dc2626;
+  --color-error-container: #fee2e2;
   --color-on-error: #ffffff;
-  --color-on-error-container: #410002;
+  --color-on-error-container: #7f1d1d;
 
   /* ── Semantic: Success */
-  --color-success: #1a6b3c;
-  --color-success-container: #d4edda;
-  --color-on-success-container: #0a3d20;
+  --color-success: #16a34a;
+  --color-success-container: #dcfce7;
+  --color-on-success-container: #14532d;
 
   /* ── Semantic: Warning */
-  --color-warning: #7a5200;
-  --color-warning-container: #ffecc7;
-  --color-on-warning-container: #261900;
+  --color-warning: #d97706;
+  --color-warning-container: #fef3c7;
+  --color-on-warning-container: #78350f;
 
   /* ── Type scale */
   --text-display-lg: 3.5rem;
@@ -87,10 +87,10 @@
   --radius-xl: 0.75rem;
   --radius-2xl: 1rem;
 
-  /* ── Shadows (navy-tinted, never black) */
-  --shadow-ambient: 0 20px 40px rgba(11, 28, 48, 0.06);
-  --shadow-card: 0 4px 16px rgba(11, 28, 48, 0.04);
-  --shadow-modal: 0 20px 60px rgba(11, 28, 48, 0.1);
+  /* ── Shadows (indigo-tinted) */
+  --shadow-ambient: 0 20px 40px rgba(30, 27, 75, 0.08);
+  --shadow-card: 0 4px 16px rgba(30, 27, 75, 0.06);
+  --shadow-modal: 0 20px 60px rgba(30, 27, 75, 0.12);
 }
 
 @layer base {
@@ -126,33 +126,60 @@
     text-wrap: balance;
   }
 
-  /* shadcn CSS variable bridge — maps shadcn's expected vars to our tokens */
+  /*
+   * shadcn CSS variable bridge.
+   * shadcn expects HSL triplets (no hsl() wrapper) in --background, --foreground, etc.
+   * We map our custom tokens here.
+   */
   :root {
-    --background: 248 249 255;
-    --foreground: 11 28 48;
+    --background: 248 250 252; /* surface */
+    --foreground: 15 23 42; /* on-surface */
+
     --card: 255 255 255;
-    --card-foreground: 11 28 48;
-    --primary: 9 20 38;
+    --card-foreground: 15 23 42;
+
+    --popover: 255 255 255;
+    --popover-foreground: 15 23 42;
+
+    --primary: 79 70 229; /* indigo-600 */
     --primary-foreground: 255 255 255;
-    --secondary: 239 244 255;
-    --secondary-foreground: 11 28 48;
-    --muted: 239 244 255;
-    --muted-foreground: 69 71 76;
-    --accent: 239 244 255;
-    --accent-foreground: 11 28 48;
-    --destructive: 186 26 26;
+
+    --secondary: 241 245 249; /* slate-100 */
+    --secondary-foreground: 15 23 42;
+
+    --muted: 241 245 249;
+    --muted-foreground: 100 116 139; /* slate-500 */
+
+    --accent: 224 231 255; /* indigo-100 */
+    --accent-foreground: 49 46 129; /* indigo-900 */
+
+    --destructive: 220 38 38;
     --destructive-foreground: 255 255 255;
-    --border: 197 198 205;
-    --input: 239 244 255;
-    --ring: 253 118 26;
-    --radius: 0.375rem;
+
+    --border: 203 213 225; /* slate-300 */
+    --input: 241 245 249;
+    --ring: 99 102 241; /* indigo-500 */
+
+    --radius: 0.5rem;
+
+    /* Status badge colours used in shipment-timeline & status-badge */
+    --color-status-label: 100 116 139;
+    --color-status-picked: 37 99 235;
+    --color-status-sorting: 234 179 8;
+    --color-status-transit: 234 88 12;
+    --color-status-delivery: 79 70 229;
+    --color-status-done: 22 163 74;
+    --color-status-failed: 220 38 38;
+    --color-status-retry: 202 138 4;
+    --color-status-returned: 202 138 4;
+    --color-status-except: 220 38 38;
   }
 }
 
 @layer utilities {
-  /* Kinetic CTA — orange gradient for primary action buttons */
+  /* ── Kinetic CTA — indigo/violet gradient for primary actions */
   .btn-kinetic {
-    background-image: linear-gradient(135deg, #9d4300 0%, #fd761a 100%);
+    background-image: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
     color: white;
     transition:
       opacity 150ms ease,
@@ -167,14 +194,7 @@
     opacity: 1;
   }
 
-  /* Glassmorphism — floating sidebars / tooltips */
-  .glass-panel {
-    background: rgba(211, 228, 254, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
-
-  /* Sidebar active state — 4px kinetic orange bar on the left */
+  /* ── Sidebar active nav item */
   .nav-active {
     position: relative;
     background-color: var(--color-primary-container);
@@ -192,7 +212,7 @@
     border-radius: 0 4px 4px 0;
   }
 
-  /* No-border data table rows */
+  /* ── Table header style */
   .data-table th {
     font-size: var(--text-label-md);
     letter-spacing: 0.08em;
@@ -204,7 +224,7 @@
     background-color: var(--color-surface-low);
   }
 
-  /* Scrollbar */
+  /* ── Thin scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;

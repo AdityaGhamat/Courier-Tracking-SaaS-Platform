@@ -12,7 +12,6 @@ export function Sidebar() {
   const { user, loading } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
-  // While user is loading, render the shell without nav items
   const visibleItems = user
     ? NAV_ITEMS.filter((item) => item.roles.includes(user.role))
     : [];
@@ -22,7 +21,7 @@ export function Sidebar() {
       className="hidden lg:flex flex-col h-screen shrink-0 transition-all duration-300 relative z-10"
       style={{
         width: collapsed ? "72px" : "240px",
-        backgroundColor: "var(--color-primary)",
+        background: "linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)",
       }}
     >
       {/* Logo */}
@@ -41,24 +40,41 @@ export function Sidebar() {
             fill="none"
             aria-label="LogisticsEngine"
           >
-            <rect width="36" height="36" rx="8" fill="#fd761a" />
+            <rect width="36" height="36" rx="8" fill="url(#sg)" />
+            <defs>
+              <linearGradient
+                id="sg"
+                x1="0"
+                y1="0"
+                x2="36"
+                y2="36"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop stopColor="#6366f1" />
+                <stop offset="1" stopColor="#4f46e5" />
+              </linearGradient>
+            </defs>
             <path
-              d="M8 18 L18 8 L28 18 L28 28 L8 28 Z"
-              fill="none"
+              d="M10 22 L18 10 L26 22"
               stroke="white"
-              strokeWidth="2"
+              strokeWidth="2.5"
+              strokeLinecap="round"
               strokeLinejoin="round"
+              fill="none"
             />
-            <circle cx="18" cy="20" r="4" fill="white" />
+            <path
+              d="M8 26 L28 26"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+            <circle cx="18" cy="22" r="2.5" fill="white" />
           </svg>
         </div>
         {!collapsed && (
           <span
-            className="text-white font-bold truncate"
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "var(--text-title-md)",
-            }}
+            className="text-white font-bold truncate text-base"
+            style={{ fontFamily: "var(--font-display)" }}
           >
             LogisticsEngine
           </span>
@@ -66,18 +82,13 @@ export function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 space-y-1 px-2">
+      <nav className="flex-1 overflow-y-auto py-4 space-y-0.5 px-2">
         {loading
-          ? // Skeleton while user loads
-            Array.from({ length: 5 }).map((_, i) => (
+          ? Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                style={{
-                  height: "40px",
-                  borderRadius: "var(--radius-lg)",
-                  backgroundColor: "rgba(255,255,255,0.06)",
-                  marginBottom: "4px",
-                }}
+                className="h-10 rounded-lg mb-1"
+                style={{ background: "rgba(255,255,255,0.06)" }}
               />
             ))
           : visibleItems.map((item) => {
@@ -91,7 +102,7 @@ export function Sidebar() {
                   key={item.href}
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group ${
-                    isActive ? "nav-active" : ""
+                    isActive ? "nav-active" : "hover:bg-white/8"
                   }`}
                   style={isActive ? {} : { color: "rgba(255,255,255,0.55)" }}
                   title={collapsed ? item.label : undefined}
@@ -99,14 +110,13 @@ export function Sidebar() {
                   <Icon
                     size={18}
                     className="shrink-0 transition-colors"
-                    style={{ color: isActive ? "#fd761a" : "inherit" }}
+                    style={{ color: isActive ? "#a5b4fc" : "inherit" }}
                   />
                   {!collapsed && (
                     <span
-                      className="truncate"
+                      className="truncate text-sm"
                       style={{
                         fontFamily: "var(--font-body)",
-                        fontSize: "var(--text-body-md)",
                         fontWeight: isActive ? 600 : 400,
                         color: isActive ? "white" : "inherit",
                       }}
@@ -128,41 +138,29 @@ export function Sidebar() {
           {user ? (
             <div className="flex items-center gap-3">
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white font-bold"
+                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-sm"
                 style={{
-                  backgroundColor: "var(--color-secondary-container)",
-                  fontSize: "var(--text-label-lg)",
-                  fontFamily: "var(--font-display)",
+                  background: "linear-gradient(135deg,#6366f1,#4f46e5)",
                 }}
               >
                 {user.name?.[0]?.toUpperCase() ?? user.role[0].toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p
-                  className="text-white font-medium truncate"
-                  style={{ fontSize: "var(--text-body-sm)" }}
-                >
+                <p className="text-white font-medium truncate text-xs">
                   {user.name}
                 </p>
                 <p
-                  className="truncate capitalize"
-                  style={{
-                    fontSize: "var(--text-label-sm)",
-                    color: "rgba(255,255,255,0.45)",
-                  }}
+                  className="truncate capitalize text-[11px]"
+                  style={{ color: "rgba(255,255,255,0.45)" }}
                 >
                   {user.role.replace("_", " ")}
                 </p>
               </div>
             </div>
           ) : (
-            // Skeleton user badge
             <div
-              style={{
-                height: "36px",
-                borderRadius: "var(--radius-lg)",
-                backgroundColor: "rgba(255,255,255,0.06)",
-              }}
+              className="h-9 rounded-lg"
+              style={{ background: "rgba(255,255,255,0.06)" }}
             />
           )}
         </div>
@@ -171,12 +169,7 @@ export function Sidebar() {
       {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed((v) => !v)}
-        className="absolute -right-3 top-16 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-colors"
-        style={{
-          backgroundColor: "var(--color-surface-lowest)",
-          border: "1px solid var(--color-outline-variant)",
-          color: "var(--color-on-surface-variant)",
-        }}
+        className="absolute -right-3 top-16 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-colors bg-white border border-slate-200 text-slate-500 hover:text-slate-900"
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
