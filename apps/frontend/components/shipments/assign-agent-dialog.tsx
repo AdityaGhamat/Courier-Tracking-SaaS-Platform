@@ -27,10 +27,11 @@ export function AssignAgentDialog({ shipmentId }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!agentId.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      await shipmentsApi.assignAgent(shipmentId, { agentId });
+      await shipmentsApi.assignAgent(shipmentId, { agentId: agentId.trim() });
       setOpen(false);
       setAgentId("");
       router.refresh();
@@ -68,7 +69,7 @@ export function AssignAgentDialog({ shipmentId }: Props) {
             <Label htmlFor="agentId">Agent ID</Label>
             <Input
               id="agentId"
-              placeholder="Agent UUID"
+              placeholder="e.g. 3f4e1a2b-..."
               value={agentId}
               onChange={(e) => setAgentId(e.target.value)}
               required
@@ -79,7 +80,7 @@ export function AssignAgentDialog({ shipmentId }: Props) {
                 color: "var(--color-text-muted)",
               }}
             >
-              Paste the agent's UUID from the Agents page.
+              Find the agent UUID from the Agents list page.
             </p>
           </div>
 
@@ -104,11 +105,15 @@ export function AssignAgentDialog({ shipmentId }: Props) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                setAgentId("");
+                setError(null);
+              }}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !agentId.trim()}>
               {loading ? "Assigning…" : "Assign"}
             </Button>
           </div>

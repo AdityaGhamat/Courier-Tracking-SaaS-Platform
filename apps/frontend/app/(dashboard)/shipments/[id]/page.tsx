@@ -8,48 +8,67 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import type { Shipment } from "@/types/shipment.types";
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 interface ShipmentResponse {
   data: { shipment: Shipment };
 }
 
+function InfoRow({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  mono?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-1)",
+      }}
+    >
+      <dt
+        style={{
+          fontSize: "var(--text-xs)",
+          color: "var(--color-text-muted)",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          fontWeight: 500,
+        }}
+      >
+        {label}
+      </dt>
+      <dd
+        style={{
+          fontSize: "var(--text-sm)",
+          fontWeight: 500,
+          fontFamily: mono ? "monospace" : undefined,
+        }}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 export default async function ShipmentDetailPage({ params }: PageProps) {
+  const { id } = await params;
+
   let shipment: Shipment | null = null;
 
   try {
-    const res = await serverFetch<ShipmentResponse>(`shipments/${params.id}`);
+    const res = await serverFetch<ShipmentResponse>(`shipments/${id}`);
     shipment = res.data?.shipment ?? null;
   } catch {
     notFound();
   }
 
   if (!shipment) notFound();
-
-  const infoRows = [
-    { label: "Tracking Number", value: shipment.trackingNumber, mono: true },
-    { label: "Status", value: <StatusBadge status={shipment.status} /> },
-    { label: "Weight", value: shipment.weight ? `${shipment.weight} kg` : "—" },
-    {
-      label: "Estimated Delivery",
-      value: shipment.estimatedDelivery
-        ? new Date(shipment.estimatedDelivery).toLocaleString()
-        : "—",
-    },
-    { label: "Created", value: new Date(shipment.createdAt).toLocaleString() },
-    {
-      label: "Last Updated",
-      value: new Date(shipment.updatedAt).toLocaleString(),
-    },
-  ];
-
-  const recipientRows = [
-    { label: "Name", value: shipment.recipientName },
-    { label: "Address", value: shipment.recipientAddress },
-    { label: "Phone", value: shipment.recipientPhone ?? "—" },
-    { label: "Email", value: shipment.recipientEmail ?? "—" },
-  ];
 
   return (
     <div
@@ -68,6 +87,9 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
             fontSize: "var(--text-sm)",
             color: "var(--color-text-muted)",
             textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "var(--space-1)",
           }}
         >
           ← Back to Shipments
@@ -75,7 +97,7 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
         <div
           style={{
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             justifyContent: "space-between",
             marginTop: "var(--space-4)",
             flexWrap: "wrap",
@@ -97,7 +119,9 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
               {shipment.trackingNumber}
             </p>
           </div>
-          <div style={{ display: "flex", gap: "var(--space-3)" }}>
+          <div
+            style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}
+          >
             <AssignAgentDialog shipmentId={shipment.id} />
             <UpdateStatusDialog
               shipmentId={shipment.id}
@@ -107,11 +131,11 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Two-column cards */}
+      {/* Two-column info cards — stacks on mobile */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           gap: "var(--space-6)",
         }}
       >
@@ -137,39 +161,38 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "var(--space-3)",
+              gap: "var(--space-4)",
             }}
           >
-            {infoRows.map((row) => (
-              <div
-                key={row.label}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--space-1)",
-                }}
-              >
-                <dt
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {row.label}
-                </dt>
-                <dd
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 500,
-                    fontFamily: (row as any).mono ? "monospace" : undefined,
-                  }}
-                >
-                  {row.value}
-                </dd>
-              </div>
-            ))}
+            <InfoRow
+              label="Tracking Number"
+              value={shipment.trackingNumber}
+              mono
+            />
+            <InfoRow
+              label="Status"
+              value={<StatusBadge status={shipment.status} />}
+            />
+            <InfoRow
+              label="Weight"
+              value={shipment.weight ? `${shipment.weight} kg` : "—"}
+            />
+            <InfoRow
+              label="Estimated Delivery"
+              value={
+                shipment.estimatedDelivery
+                  ? new Date(shipment.estimatedDelivery).toLocaleString()
+                  : "—"
+              }
+            />
+            <InfoRow
+              label="Created"
+              value={new Date(shipment.createdAt).toLocaleString()}
+            />
+            <InfoRow
+              label="Last Updated"
+              value={new Date(shipment.updatedAt).toLocaleString()}
+            />
           </dl>
         </div>
 
@@ -195,33 +218,13 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "var(--space-3)",
+              gap: "var(--space-4)",
             }}
           >
-            {recipientRows.map((row) => (
-              <div
-                key={row.label}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--space-1)",
-                }}
-              >
-                <dt
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {row.label}
-                </dt>
-                <dd style={{ fontSize: "var(--text-sm)", fontWeight: 500 }}>
-                  {row.value}
-                </dd>
-              </div>
-            ))}
+            <InfoRow label="Name" value={shipment.recipientName} />
+            <InfoRow label="Address" value={shipment.recipientAddress} />
+            <InfoRow label="Phone" value={shipment.recipientPhone ?? "—"} />
+            <InfoRow label="Email" value={shipment.recipientEmail ?? "—"} />
           </dl>
         </div>
       </div>
@@ -239,7 +242,18 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
             alignItems: "center",
           }}
         >
-          <span style={{ fontSize: "1.5rem" }}>🚴</span>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--color-primary)"
+            strokeWidth="2"
+            style={{ flexShrink: 0 }}
+          >
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+          </svg>
           <div>
             <p style={{ fontWeight: 600, fontSize: "var(--text-sm)" }}>
               Assigned Agent

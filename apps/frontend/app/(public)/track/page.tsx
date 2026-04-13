@@ -6,7 +6,13 @@ export const metadata = {
   description: "Enter your tracking number to get live status updates.",
 };
 
-export default function PublicTrackPage() {
+interface PageProps {
+  searchParams: Promise<{ q?: string }>;
+}
+
+export default async function PublicTrackPage({ searchParams }: PageProps) {
+  const { q } = await searchParams;
+
   return (
     <div
       style={{
@@ -82,9 +88,35 @@ export default function PublicTrackPage() {
       >
         <div style={{ width: "100%", maxWidth: "560px" }}>
           <div style={{ textAlign: "center", marginBottom: "var(--space-8)" }}>
-            <div style={{ fontSize: "3rem", marginBottom: "var(--space-4)" }}>
-              📦
+            {/* SVG illustration — replaces 📦 emoji */}
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                margin: "0 auto var(--space-4)",
+                background: "var(--color-primary-highlight)",
+                borderRadius: "var(--radius-xl)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--color-primary)",
+              }}
+            >
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
             </div>
+
             <h1
               style={{
                 fontSize: "var(--text-2xl)",
@@ -106,8 +138,8 @@ export default function PublicTrackPage() {
             </p>
           </div>
 
-          {/* The interactive search + result — must be client component */}
-          <TrackingSearchForm />
+          {/* Pass initial query from URL so deep-links work */}
+          <TrackingSearchForm initialQuery={q ?? ""} />
         </div>
       </main>
 

@@ -25,7 +25,7 @@ const STATUS_OPTIONS: { label: string; value: string }[] = [
 ];
 
 interface PageProps {
-  searchParams: { page?: string; status?: string };
+  searchParams: Promise<{ page?: string; status?: string }>;
 }
 
 interface ListResponse {
@@ -38,8 +38,9 @@ interface ListResponse {
 }
 
 export default async function ShipmentsPage({ searchParams }: PageProps) {
-  const page = Number(searchParams.page) || 1;
-  const status = searchParams.status ?? "";
+  const params = await searchParams;
+  const page = Number(params.page) || 1;
+  const status = params.status ?? "";
 
   let result: ListResponse["data"] | null = null;
   let fetchError: string | null = null;
@@ -57,23 +58,9 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
   const totalPages = result?.totalPages ?? 1;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-6)",
-      }}
-    >
+    <div className="flex flex-col gap-6">
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-        }}
-      >
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1
             style={{
@@ -97,7 +84,7 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
         <CreateShipmentDialog />
       </div>
 
-      {/* Status filter */}
+      {/* Status filters */}
       <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
         {STATUS_OPTIONS.map((opt) => {
           const isActive = status === opt.value;
@@ -128,7 +115,7 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
         })}
       </div>
 
-      {/* Error */}
+      {/* Error banner */}
       {fetchError && (
         <div
           style={{
@@ -137,9 +124,10 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
             background: "var(--color-error-highlight)",
             color: "var(--color-error)",
             fontSize: "var(--text-sm)",
+            border: "1px solid var(--color-error)",
           }}
         >
-          {fetchError}
+          ⚠ {fetchError}
         </div>
       )}
 
@@ -160,8 +148,24 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
               color: "var(--color-text-muted)",
             }}
           >
-            <div style={{ fontSize: "2rem", marginBottom: "var(--space-4)" }}>
-              📦
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                margin: "0 auto var(--space-4)",
+                color: "var(--color-text-faint)",
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z" />
+                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                <line x1="12" y1="12" x2="12" y2="12" />
+              </svg>
             </div>
             <p style={{ fontWeight: 600, color: "var(--color-text)" }}>
               No shipments yet
@@ -244,6 +248,7 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
                       style={{
                         fontSize: "var(--text-sm)",
                         color: "var(--color-text-muted)",
+                        fontVariantNumeric: "tabular-nums",
                       }}
                     >
                       {s.weight ? `${s.weight} kg` : "—"}
@@ -254,6 +259,7 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
                       style={{
                         fontSize: "var(--text-sm)",
                         color: "var(--color-text-muted)",
+                        fontVariantNumeric: "tabular-nums",
                       }}
                     >
                       {new Date(s.createdAt).toLocaleDateString()}
@@ -311,6 +317,7 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
                     : "var(--color-text)",
                 textDecoration: "none",
                 border: "1px solid var(--color-border)",
+                fontVariantNumeric: "tabular-nums",
               }}
             >
               {p}

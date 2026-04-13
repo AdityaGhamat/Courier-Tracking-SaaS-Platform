@@ -2,32 +2,121 @@
 
 import type { TrackingEvent, ShipmentStatus } from "@/types/shipment.types";
 
-const STATUS_META: Record<
-  ShipmentStatus,
-  { label: string; icon: string; color: string }
-> = {
-  label_created: {
-    label: "Label Created",
-    icon: "🏷️",
-    color: "var(--color-text-muted)",
-  },
-  picked_up: { label: "Picked Up", icon: "📦", color: "var(--color-blue)" },
+const StatusIcon = ({ status }: { status: ShipmentStatus }) => {
+  const props = {
+    width: 16,
+    height: 16,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  switch (status) {
+    case "label_created":
+      return (
+        <svg {...props}>
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+          <line x1="7" y1="7" x2="7.01" y2="7" />
+        </svg>
+      );
+    case "picked_up":
+      return (
+        <svg {...props}>
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      );
+    case "at_sorting_facility":
+      return (
+        <svg {...props}>
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+        </svg>
+      );
+    case "in_transit":
+      return (
+        <svg {...props}>
+          <rect x="1" y="3" width="15" height="13" />
+          <path d="M16 8h4l3 3v5h-7V8z" />
+          <circle cx="5.5" cy="18.5" r="2.5" />
+          <circle cx="18.5" cy="18.5" r="2.5" />
+        </svg>
+      );
+    case "out_for_delivery":
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
+    case "delivered":
+      return (
+        <svg {...props}>
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      );
+    case "failed":
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+          <line x1="9" y1="9" x2="15" y2="15" />
+        </svg>
+      );
+    case "retry":
+      return (
+        <svg {...props}>
+          <polyline points="1 4 1 10 7 10" />
+          <path d="M3.51 15a9 9 0 1 0 .49-3.51" />
+        </svg>
+      );
+    case "returned":
+      return (
+        <svg {...props}>
+          <polyline points="9 14 4 9 9 4" />
+          <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
+        </svg>
+      );
+    case "exception":
+      return (
+        <svg {...props}>
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="4" />
+        </svg>
+      );
+  }
+};
+
+const STATUS_META: Record<ShipmentStatus, { label: string; color: string }> = {
+  label_created: { label: "Label Created", color: "var(--color-text-muted)" },
+  picked_up: { label: "Picked Up", color: "var(--color-blue)" },
   at_sorting_facility: {
     label: "At Sorting Facility",
-    icon: "🏭",
     color: "var(--color-gold)",
   },
-  in_transit: { label: "In Transit", icon: "🚚", color: "var(--color-orange)" },
+  in_transit: { label: "In Transit", color: "var(--color-orange)" },
   out_for_delivery: {
     label: "Out for Delivery",
-    icon: "🛵",
     color: "var(--color-primary)",
   },
-  delivered: { label: "Delivered", icon: "✅", color: "var(--color-success)" },
-  failed: { label: "Failed", icon: "❌", color: "var(--color-error)" },
-  retry: { label: "Retry", icon: "🔄", color: "var(--color-warning)" },
-  returned: { label: "Returned", icon: "↩️", color: "var(--color-warning)" },
-  exception: { label: "Exception", icon: "⚠️", color: "var(--color-error)" },
+  delivered: { label: "Delivered", color: "var(--color-success)" },
+  failed: { label: "Failed", color: "var(--color-error)" },
+  retry: { label: "Retry", color: "var(--color-warning)" },
+  returned: { label: "Returned", color: "var(--color-warning)" },
+  exception: { label: "Exception", color: "var(--color-error)" },
 };
 
 interface Props {
@@ -55,11 +144,10 @@ export function ShipmentTimeline({ events }: Props) {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
+    <div style={{ display: "flex", flexDirection: "column" }}>
       {sorted.map((event, idx) => {
         const meta = STATUS_META[event.status] ?? {
           label: event.status,
-          icon: "•",
           color: "var(--color-text-muted)",
         };
         const isLast = idx === sorted.length - 1;
@@ -69,7 +157,7 @@ export function ShipmentTimeline({ events }: Props) {
             key={event.id}
             style={{ display: "flex", gap: "var(--space-4)" }}
           >
-            {/* Timeline spine */}
+            {/* Spine */}
             <div
               style={{
                 display: "flex",
@@ -88,12 +176,12 @@ export function ShipmentTimeline({ events }: Props) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "14px",
                   border: `2px solid ${meta.color}`,
+                  color: meta.color,
                   flexShrink: 0,
                 }}
               >
-                {meta.icon}
+                <StatusIcon status={event.status} />
               </div>
               {!isLast && (
                 <div
@@ -108,7 +196,7 @@ export function ShipmentTimeline({ events }: Props) {
               )}
             </div>
 
-            {/* Event content */}
+            {/* Content */}
             <div
               style={{
                 paddingBottom: isLast ? "0" : "var(--space-6)",
@@ -137,6 +225,7 @@ export function ShipmentTimeline({ events }: Props) {
                   style={{
                     fontSize: "var(--text-xs)",
                     color: "var(--color-text-faint)",
+                    fontVariantNumeric: "tabular-nums",
                   }}
                 >
                   {new Date(event.timestamp).toLocaleString()}
@@ -150,7 +239,7 @@ export function ShipmentTimeline({ events }: Props) {
                     margin: "var(--space-1) 0 0",
                   }}
                 >
-                  📍 {event.location}
+                  {event.location}
                 </p>
               )}
               {event.description && (
