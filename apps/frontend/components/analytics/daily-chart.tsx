@@ -7,6 +7,11 @@ interface Props {
   title?: string;
 }
 
+// Fixes the UTC-midnight timezone bug: "2026-04-13" → local Apr 13, not Apr 12
+function parseLocalDate(dateStr: string): Date {
+  return new Date(dateStr + "T00:00:00");
+}
+
 export function DailyChart({
   data,
   title = "Daily Shipments (Last 30 Days)",
@@ -44,7 +49,6 @@ export function DailyChart({
 
   const max = Math.max(...data.map((d) => d.total), 1);
 
-  // Fill gaps so we always show a continuous 30-day range
   const filled = (() => {
     const map = new Map(data.map((d) => [d.date, d.total]));
     const result: DailyShipment[] = [];
@@ -56,6 +60,8 @@ export function DailyChart({
     }
     return result;
   })();
+
+  const todayKey = new Date().toISOString().slice(0, 10);
 
   return (
     <div
@@ -74,6 +80,7 @@ export function DailyChart({
           display: "flex",
           alignItems: "baseline",
           justifyContent: "space-between",
+          gap: "var(--space-4)",
         }}
       >
         <p
@@ -89,6 +96,8 @@ export function DailyChart({
           style={{
             fontSize: "var(--text-xs)",
             color: "var(--color-text-faint)",
+            flexShrink: 0,
+            fontVariantNumeric: "tabular-nums",
           }}
         >
           Total: {data.reduce((s, d) => s + d.total, 0).toLocaleString()}
@@ -142,7 +151,7 @@ export function DailyChart({
         >
           {filled.map((day) => {
             const heightPct = max > 0 ? (day.total / max) * 100 : 0;
-            const isToday = day.date === new Date().toISOString().slice(0, 10);
+            const isToday = day.date === todayKey;
             return (
               <div
                 key={day.date}
@@ -164,7 +173,7 @@ export function DailyChart({
         </div>
       </div>
 
-      {/* X-axis — show only first, middle, last dates */}
+      {/* X-axis — first, middle, last */}
       <div
         style={{
           display: "flex",
@@ -184,7 +193,7 @@ export function DailyChart({
               color: "var(--color-text-faint)",
             }}
           >
-            {new Date(d.date).toLocaleDateString(undefined, {
+            {parseLocalDate(d.date).toLocaleDateString(undefined, {
               month: "short",
               day: "numeric",
             })}

@@ -1,6 +1,5 @@
 import { serverFetch } from "@/lib/server-api";
 import type { Vehicle } from "@/types";
-import { Truck } from "lucide-react";
 
 async function getVehicles(): Promise<Vehicle[]> {
   try {
@@ -11,71 +10,120 @@ async function getVehicles(): Promise<Vehicle[]> {
   }
 }
 
+const TruckIcon = ({ size = 36 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3" />
+    <rect x="9" y="11" width="14" height="10" rx="2" />
+    <circle cx="12" cy="21" r="1" />
+    <circle cx="20" cy="21" r="1" />
+  </svg>
+);
+
+const VEHICLE_TYPE_COLORS: Record<string, string> = {
+  bike: "var(--color-primary)",
+  van: "var(--color-warning)",
+  truck: "var(--color-blue)",
+};
+
 export default async function VehiclesPage() {
   const vehicles = await getVehicles();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-6)",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "var(--space-4)",
+        }}
+      >
         <div>
           <h1
-            className="font-bold"
             style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "var(--text-headline-sm)",
-              color: "var(--color-on-surface)",
+              fontSize: "var(--text-xl)",
+              fontWeight: 700,
+              color: "var(--color-text)",
             }}
           >
             Vehicles
           </h1>
           <p
             style={{
-              fontSize: "var(--text-body-md)",
-              color: "var(--color-on-surface-variant)",
-              marginTop: "0.25rem",
+              fontSize: "var(--text-sm)",
+              color: "var(--color-text-muted)",
+              marginTop: "var(--space-1)",
             }}
           >
             Fleet management
           </p>
         </div>
         <button
-          className="btn-kinetic flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold"
-          style={{ fontSize: "var(--text-body-md)" }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "var(--space-2)",
+            padding: "var(--space-2) var(--space-4)",
+            background: "var(--color-primary)",
+            color: "var(--color-text-inverse)",
+            border: "none",
+            borderRadius: "var(--radius-md)",
+            fontSize: "var(--text-sm)",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
         >
-          <Truck size={16} />
+          <TruckIcon size={16} />
           Add Vehicle
         </button>
       </div>
 
+      {/* Empty state */}
       {vehicles.length === 0 ? (
         <div
-          className="rounded-xl p-12 text-center"
           style={{
-            backgroundColor: "var(--color-surface-low)",
-            border: "1px dashed var(--color-outline-variant)",
+            padding: "var(--space-16)",
+            textAlign: "center",
+            border: "1px dashed var(--color-border)",
+            borderRadius: "var(--radius-lg)",
+            color: "var(--color-text-faint)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "var(--space-3)",
           }}
         >
-          <Truck
-            size={36}
-            style={{
-              color: "var(--color-on-surface-variant)",
-              margin: "0 auto 0.75rem",
-            }}
-          />
+          <TruckIcon size={36} />
           <p
-            className="font-semibold"
             style={{
-              fontSize: "var(--text-body-md)",
-              color: "var(--color-on-surface)",
+              fontWeight: 600,
+              color: "var(--color-text)",
+              fontSize: "var(--text-sm)",
             }}
           >
             No vehicles registered
           </p>
           <p
             style={{
-              fontSize: "var(--text-body-sm)",
-              color: "var(--color-on-surface-variant)",
-              marginTop: "0.25rem",
+              fontSize: "var(--text-sm)",
+              color: "var(--color-text-muted)",
             }}
           >
             Add vehicles to assign them to delivery agents
@@ -83,74 +131,111 @@ export default async function VehiclesPage() {
         </div>
       ) : (
         <div
-          className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid var(--color-outline-variant)" }}
+          style={{
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-lg)",
+            overflow: "hidden",
+          }}
         >
-          <table className="data-table w-full">
-            <thead style={{ backgroundColor: "var(--color-surface-low)" }}>
-              <tr>
-                {["License Plate", "Type", "Assigned Agent", ""].map((h) => (
-                  <th key={h} className="text-left px-4 py-3">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {vehicles.map((v) => (
-                <tr
-                  key={v.id}
-                  style={{
-                    borderTop: "1px solid var(--color-outline-variant)",
-                  }}
-                >
-                  <td className="px-4 py-3">
-                    <span
-                      className="font-mono font-semibold"
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "var(--color-surface-offset)" }}>
+                  {["License Plate", "Type", "Assigned Agent", ""].map((h) => (
+                    <th
+                      key={h}
                       style={{
-                        fontSize: "var(--text-body-md)",
-                        color: "var(--color-on-surface)",
+                        textAlign: "left",
+                        padding: "var(--space-3) var(--space-4)",
+                        fontSize: "var(--text-xs)",
+                        fontWeight: 600,
+                        color: "var(--color-text-muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      {v.licensePlate}
-                    </span>
-                  </td>
-                  <td
-                    className="px-4 py-3 capitalize"
-                    style={{
-                      fontSize: "var(--text-body-md)",
-                      color: "var(--color-on-surface-variant)",
-                    }}
-                  >
-                    {v.type}
-                  </td>
-                  <td
-                    className="px-4 py-3"
-                    style={{
-                      fontSize: "var(--text-body-md)",
-                      color: "var(--color-on-surface-variant)",
-                    }}
-                  >
-                    {v.agentId ?? (
-                      <span style={{ color: "var(--color-outline-variant)" }}>
-                        Unassigned
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      style={{
-                        fontSize: "var(--text-label-md)",
-                        color: "var(--color-secondary-container)",
-                      }}
-                    >
-                      Manage
-                    </button>
-                  </td>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {vehicles.map((v) => (
+                  <tr
+                    key={v.id}
+                    style={{ borderTop: "1px solid var(--color-divider)" }}
+                  >
+                    <td style={{ padding: "var(--space-3) var(--space-4)" }}>
+                      <span
+                        style={{
+                          fontFamily: "monospace",
+                          fontWeight: 600,
+                          fontSize: "var(--text-sm)",
+                          color: "var(--color-text)",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {v.licensePlate}
+                      </span>
+                    </td>
+                    <td style={{ padding: "var(--space-3) var(--space-4)" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          padding: "var(--space-1) var(--space-3)",
+                          borderRadius: "var(--radius-full)",
+                          background: "var(--color-surface-offset)",
+                          fontSize: "var(--text-xs)",
+                          fontWeight: 600,
+                          color:
+                            VEHICLE_TYPE_COLORS[v.type] ??
+                            "var(--color-text-muted)",
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        {v.type}
+                      </span>
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-3) var(--space-4)",
+                        fontSize: "var(--text-sm)",
+                        color: v.agentId
+                          ? "var(--color-text)"
+                          : "var(--color-text-faint)",
+                        fontStyle: v.agentId ? "normal" : "italic",
+                      }}
+                    >
+                      {v.agentId ?? "Unassigned"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-3) var(--space-4)",
+                        textAlign: "right",
+                      }}
+                    >
+                      <button
+                        style={{
+                          fontSize: "var(--text-xs)",
+                          fontWeight: 600,
+                          color: "var(--color-primary)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "var(--space-1) var(--space-2)",
+                        }}
+                      >
+                        Manage
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

@@ -1,5 +1,4 @@
 import { serverFetch } from "@/lib/server-api";
-import { Users } from "lucide-react";
 
 interface Agent {
   id: string;
@@ -18,120 +17,191 @@ async function getAgents(): Promise<Agent[]> {
   }
 }
 
+function AgentAvatar({ name }: { name: string }) {
+  return (
+    <div
+      style={{
+        width: "40px",
+        height: "40px",
+        borderRadius: "var(--radius-full)",
+        background: "var(--color-primary-highlight)",
+        color: "var(--color-primary)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 700,
+        fontSize: "var(--text-sm)",
+        flexShrink: 0,
+      }}
+    >
+      {name?.[0]?.toUpperCase() ?? "A"}
+    </div>
+  );
+}
+
+const UsersIcon = (
+  <svg
+    width="36"
+    height="36"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
 export default async function AgentsPage() {
   const agents = await getAgents();
 
   return (
-    <div className="space-y-6">
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-6)",
+      }}
+    >
+      {/* Header */}
       <div>
         <h1
-          className="font-bold"
           style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "var(--text-headline-sm)",
-            color: "var(--color-on-surface)",
+            fontSize: "var(--text-xl)",
+            fontWeight: 700,
+            color: "var(--color-text)",
           }}
         >
           Delivery Agents
         </h1>
         <p
           style={{
-            fontSize: "var(--text-body-md)",
-            color: "var(--color-on-surface-variant)",
-            marginTop: "0.25rem",
+            fontSize: "var(--text-sm)",
+            color: "var(--color-text-muted)",
+            marginTop: "var(--space-1)",
           }}
         >
           Manage your delivery workforce
         </p>
       </div>
 
+      {/* Empty state */}
       {agents.length === 0 ? (
         <div
-          className="rounded-xl p-12 text-center"
           style={{
-            backgroundColor: "var(--color-surface-low)",
-            border: "1px dashed var(--color-outline-variant)",
+            padding: "var(--space-16)",
+            textAlign: "center",
+            border: "1px dashed var(--color-border)",
+            borderRadius: "var(--radius-lg)",
+            color: "var(--color-text-faint)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "var(--space-3)",
           }}
         >
-          <Users
-            size={36}
-            style={{
-              color: "var(--color-on-surface-variant)",
-              margin: "0 auto 0.75rem",
-            }}
-          />
+          {UsersIcon}
           <p
-            className="font-semibold"
             style={{
-              fontSize: "var(--text-body-md)",
-              color: "var(--color-on-surface)",
+              fontWeight: 600,
+              color: "var(--color-text)",
+              fontSize: "var(--text-sm)",
             }}
           >
             No agents yet
           </p>
           <p
             style={{
-              fontSize: "var(--text-body-sm)",
-              color: "var(--color-on-surface-variant)",
-              marginTop: "0.25rem",
+              fontSize: "var(--text-sm)",
+              color: "var(--color-text-muted)",
             }}
           >
             Register agents via{" "}
-            <span
-              className="font-mono"
-              style={{ color: "var(--color-secondary-container)" }}
+            <code
+              style={{
+                fontFamily: "monospace",
+                fontSize: "var(--text-xs)",
+                background: "var(--color-surface-offset)",
+                padding: "2px 6px",
+                borderRadius: "var(--radius-sm)",
+                color: "var(--color-primary)",
+              }}
             >
               POST /auth/register-agent
-            </span>
+            </code>
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: "var(--space-4)",
+          }}
+        >
           {agents.map((agent) => (
             <div
               key={agent.id}
-              className="rounded-xl p-5 flex items-center gap-4"
               style={{
-                backgroundColor: "var(--color-surface-lowest)",
-                border: "1px solid var(--color-outline-variant)",
-                boxShadow: "var(--shadow-card)",
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius-lg)",
+                padding: "var(--space-5)",
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-4)",
+                boxShadow: "var(--shadow-sm)",
               }}
             >
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-white"
-                style={{
-                  backgroundColor: "var(--color-secondary-container)",
-                  fontSize: "var(--text-label-lg)",
-                  fontFamily: "var(--font-display)",
-                }}
-              >
-                {agent.name?.[0]?.toUpperCase() ?? "A"}
-              </div>
-              <div className="min-w-0">
+              <AgentAvatar name={agent.name} />
+              <div style={{ minWidth: 0 }}>
                 <p
-                  className="font-semibold truncate"
                   style={{
-                    fontSize: "var(--text-body-md)",
-                    color: "var(--color-on-surface)",
+                    fontWeight: 600,
+                    fontSize: "var(--text-sm)",
+                    color: "var(--color-text)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {agent.name}
                 </p>
                 <p
-                  className="truncate"
                   style={{
-                    fontSize: "var(--text-label-md)",
-                    color: "var(--color-on-surface-variant)",
+                    fontSize: "var(--text-xs)",
+                    color: "var(--color-text-muted)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {agent.email}
                 </p>
+                {agent.phone && (
+                  <p
+                    style={{
+                      fontSize: "var(--text-xs)",
+                      color: "var(--color-text-faint)",
+                      marginTop: "var(--space-1)",
+                    }}
+                  >
+                    {agent.phone}
+                  </p>
+                )}
                 {agent.assignedShipments !== undefined && (
                   <p
                     style={{
-                      fontSize: "var(--text-label-md)",
-                      color: "var(--color-secondary-container)",
-                      marginTop: "0.2rem",
+                      fontSize: "var(--text-xs)",
+                      color: "var(--color-primary)",
+                      fontWeight: 600,
+                      marginTop: "var(--space-1)",
+                      fontVariantNumeric: "tabular-nums",
                     }}
                   >
                     {agent.assignedShipments} active deliveries

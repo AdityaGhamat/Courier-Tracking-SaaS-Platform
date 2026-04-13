@@ -6,6 +6,11 @@ interface Props {
   data: WeeklyActivity[];
 }
 
+// Fixes UTC-midnight timezone bug
+function parseLocalDate(dateStr: string): Date {
+  return new Date(dateStr + "T00:00:00");
+}
+
 export function WeeklyActivityChart({ data }: Props) {
   if (!data || data.length === 0) {
     return (
@@ -38,7 +43,6 @@ export function WeeklyActivityChart({ data }: Props) {
     );
   }
 
-  // Fill all 7 days
   const filled = (() => {
     const map = new Map(data.map((d) => [d.date, d]));
     const result: WeeklyActivity[] = [];
@@ -53,6 +57,9 @@ export function WeeklyActivityChart({ data }: Props) {
 
   const max = Math.max(...filled.flatMap((d) => [d.delivered, d.failed]), 1);
 
+  const totalDelivered = filled.reduce((s, d) => s + d.delivered, 0);
+  const totalFailed = filled.reduce((s, d) => s + d.failed, 0);
+
   return (
     <div
       style={{
@@ -65,11 +72,14 @@ export function WeeklyActivityChart({ data }: Props) {
         gap: "var(--space-4)",
       }}
     >
+      {/* Header */}
       <div
         style={{
           display: "flex",
           alignItems: "baseline",
           justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "var(--space-2)",
         }}
       >
         <p style={{ fontSize: "var(--text-sm)", fontWeight: 600 }}>
@@ -77,8 +87,16 @@ export function WeeklyActivityChart({ data }: Props) {
         </p>
         <div style={{ display: "flex", gap: "var(--space-4)" }}>
           {[
-            { label: "Delivered", color: "var(--color-success)" },
-            { label: "Failed", color: "var(--color-error)" },
+            {
+              label: "Delivered",
+              color: "var(--color-success)",
+              count: totalDelivered,
+            },
+            {
+              label: "Failed",
+              color: "var(--color-error)",
+              count: totalFailed,
+            },
           ].map((l) => (
             <div
               key={l.label}
@@ -104,11 +122,22 @@ export function WeeklyActivityChart({ data }: Props) {
               >
                 {l.label}
               </span>
+              <span
+                style={{
+                  fontSize: "var(--text-xs)",
+                  color: "var(--color-text)",
+                  fontWeight: 600,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {l.count}
+              </span>
             </div>
           ))}
         </div>
       </div>
 
+      {/* Bars */}
       <div
         style={{
           display: "flex",
@@ -120,7 +149,8 @@ export function WeeklyActivityChart({ data }: Props) {
         {filled.map((day) => {
           const deliveredH = (day.delivered / max) * 100;
           const failedH = (day.failed / max) * 100;
-          const label = new Date(day.date).toLocaleDateString(undefined, {
+          // ✅ Fixed: parseLocalDate so Mon/Apr-12 doesn't show as Sun/Apr-11
+          const label = parseLocalDate(day.date).toLocaleDateString(undefined, {
             weekday: "short",
           });
           return (
@@ -162,7 +192,7 @@ export function WeeklyActivityChart({ data }: Props) {
                     background: "var(--color-error)",
                     borderRadius: "var(--radius-sm) var(--radius-sm) 0 0",
                     transition: "height 400ms ease",
-                    opacity: 0.7,
+                    opacity: 0.75,
                   }}
                 />
               </div>

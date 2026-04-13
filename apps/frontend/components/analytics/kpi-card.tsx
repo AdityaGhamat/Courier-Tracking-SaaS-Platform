@@ -1,9 +1,11 @@
+import type { ReactNode } from "react";
+
 interface KpiCardProps {
   label: string;
   value: number | string;
   sub?: string;
   accent?: string;
-  icon?: string;
+  icon?: ReactNode;
 }
 
 export function KpiCard({ label, value, sub, accent, icon }: KpiCardProps) {
@@ -39,7 +41,23 @@ export function KpiCard({ label, value, sub, accent, icon }: KpiCardProps) {
         >
           {label}
         </p>
-        {icon && <span style={{ fontSize: "1.25rem" }}>{icon}</span>}
+        {icon && (
+          <div
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "var(--radius-md)",
+              background: "var(--color-surface-offset)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color,
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </div>
+        )}
       </div>
 
       <p
