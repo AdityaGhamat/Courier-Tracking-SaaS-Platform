@@ -5,31 +5,28 @@ const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:3005";
 
 async function handler(
   req: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> },
+  context: { params: Promise<{ path: string[] }> },
 ) {
-  const { path } = await params;
-  const pathStr = path.join("/");
-  const search = req.nextUrl.search;
-  const backendUrl = `${BACKEND_URL}/api/v1/${pathStr}${search}`;
+  const { path } = await context.params;
+  const joined = path.join("/");
+  const search = req.nextUrl.search ?? "";
+  const backendUrl = `${BACKEND_URL}/api/v1/${joined}${search}`;
 
   // Forward cookies from browser → backend
   const cookieStore = await cookies();
   const sessionKey = cookieStore.get("session_key")?.value;
   const refreshKey = cookieStore.get("refresh_key")?.value;
+
   const cookieHeader = [
-    sessionKey && `session_key=${sessionKey}`,
-    refreshKey && `refresh_key=${refreshKey}`,
+    sessionKey ? `session_key=${sessionKey}` : "",
+    refreshKey ? `refresh_key=${refreshKey}` : "",
   ]
     .filter(Boolean)
     .join("; ");
 
-  const headers = new Headers();
-  headers.set("content-type", "application/json");
-  if (cookieHeader) headers.set("cookie", cookieHeader);
-
-  // Forward auth header if present (Bearer fallback)
-  const authHeader = req.headers.get("authorization");
-  if (authHeader) headers.set("authorization", authHeader);
+  const forwardHeaders = new Headers();
+  forwardHeaders.set("content-type", "application/json");
+  if (cookieHeader) forwardHeaders.set("cookie", cookieHeader);
 
   const body =
     req.method !== "GET" && req.method !== "HEAD"
@@ -40,13 +37,13 @@ async function handler(
   try {
     backendRes = await fetch(backendUrl, {
       method: req.method,
-      headers,
+      headers: forwardHeaders,
       body,
     });
   } catch {
     return NextResponse.json(
       { message: "Backend unreachable" },
-      { status: 503 },
+      { status: 502 },
     );
   }
 
@@ -57,28 +54,33 @@ async function handler(
     headers: { "content-type": "application/json" },
   });
 
-  // Re-set cookies from backend onto the Next.js domain
-  const rawCookies: string[] =
+  const setCookies: string[] =
     (backendRes.headers as any).getSetCookie?.() ??
-    ([backendRes.headers.get("set-cookie")].filter(Boolean) as string[]);
+    [backendRes.headers.get("set-cookie")].filter(Boolean);
 
-  for (const cookieStr of rawCookies) {
-    const [nameValue] = cookieStr.split(";");
-    const eqIdx = nameValue.indexOf("=");
-    const name = nameValue.slice(0, eqIdx).trim();
-    const value = nameValue.slice(eqIdx + 1).trim();
+  for (const raw of setCookies) {
+    const [nameValuePart] = raw.split(";");
+    const eqIdx = nameValuePart.indexOf("=");
+    const name = nameValuePart.slice(0, eqIdx).trim();
+    const value = nameValuePart.slice(eqIdx + 1).trim();
 
-    response.cookies.set(name, value, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: name === "session_key" ? 3600 : 60 * 60 * 24 * 7,
-    });
+    const isSession = name === "session_key";
+    const isRefresh = name === "refresh_key";
+
+    // Only forward the two known auth cookies; ignore anything else
+    if (isSession || isRefresh) {
+      response.cookies.set(name, value, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: isSession ? 60 * 60 : 60 * 60 * 24 * 7, // 1h / 7d
+      });
+    }
   }
 
-  // On logout — clear cookies
-  if (pathStr === "auth/logout") {
+  // Clear cookies on logout
+  if (joined === "auth/logout") {
     response.cookies.delete("session_key");
     response.cookies.delete("refresh_key");
   }

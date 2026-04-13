@@ -178,4 +178,20 @@ router.post(
  */
 router.post("/logout", authController.logout);
 
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get currently authenticated user
+ *     tags: [Auth]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns current user from JWT
+ *       401:
+ *         description: Not authenticated
+ */
+router.get("/me", AuthMiddleware, authController.me);
+
 export default router;

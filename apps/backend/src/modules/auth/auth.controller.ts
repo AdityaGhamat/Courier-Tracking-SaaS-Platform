@@ -203,6 +203,14 @@ class AuthController {
       next(error);
     }
   }
+  async me(req: Request, res: Response, next: NextFunction) {
+    try {
+      const user = (req as any).user;
+      return SuccessResponse(res, 200, { user }, "Authenticated user");
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const authController = new AuthController();

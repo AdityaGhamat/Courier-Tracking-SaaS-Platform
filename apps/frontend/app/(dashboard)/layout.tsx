@@ -1,40 +1,40 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Topbar } from "@/components/layout/topbar";
+import { serverFetch } from "@/lib/server-api";
 import { AuthProvider } from "@/context/auth-context";
-import { getUserFromCookie } from "@/lib/session";
+import { Sidebar } from "@/components/layout/sidebar";
+import type { User } from "@/types";
+import { redirect } from "next/navigation";
+
+async function getMe(): Promise<User | null> {
+  try {
+    const res = await serverFetch<{ data: { user: User } }>("auth/me");
+    return res.data?.user ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get("session_key")?.value;
+  const user = await getMe();
 
-  if (!sessionToken) redirect("/login");
-
-  const user = await getUserFromCookie(sessionToken);
   if (!user) redirect("/login");
 
   return (
-    // Hydrate client auth context with server-decoded user
     <AuthProvider initialUser={user}>
-      <div
-        className="flex h-screen overflow-hidden"
-        style={{ backgroundColor: "var(--color-surface)" }}
-      >
+      <div className="flex h-screen overflow-hidden">
         <Sidebar user={user} />
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          <Topbar user={user} />
-          <main
-            className="flex-1 overflow-y-auto p-6 lg:p-8"
-            style={{ backgroundColor: "var(--color-surface)" }}
-          >
-            {children}
-          </main>
-        </div>
+        <main
+          className="flex-1 overflow-y-auto"
+          style={{
+            backgroundColor: "var(--color-bg)",
+            padding: "var(--space-8)",
+          }}
+        >
+          {children}
+        </main>
       </div>
     </AuthProvider>
   );

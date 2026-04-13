@@ -9,7 +9,11 @@ export const validate =
   (req: Request, _res: Response, next: NextFunction) => {
     try {
       const data = schema.parse(req[target]);
-      req[target] = data as any;
+      if (target === "query") {
+        (req as any).parsedQuery = data;
+      } else {
+        req[target] = data as any;
+      }
       next();
     } catch (err) {
       if (err instanceof ZodError) {

@@ -77,7 +77,9 @@ class PaymentController {
   async listPayments(req: Request, res: Response, next: NextFunction) {
     try {
       const { workspaceId } = (req as any).user;
-      const { page, limit, status } = req.query as any;
+
+      const q = (req as any).parsedQuery ?? req.query;
+      const { page, limit, status } = q as any;
       const result = await paymentService.listPayments(
         workspaceId,
         Number(page) || 1,

@@ -1,102 +1,105 @@
+import { serverFetch } from "@/lib/server-api";
 import {
-  PackageSearch,
-  Warehouse,
+  Package,
   Truck,
-  Users,
+  CheckCircle2,
+  AlertCircle,
   TrendingUp,
   Clock,
+  Users,
 } from "lucide-react";
-import { serverFetch } from "@/lib/server-api";
-import { StatCard } from "@/components/ui/stat-card";
-import { StatusBadge } from "@/components/ui/status-badge";
 
-interface AnalyticsOverview {
-  totalShipments: number;
-  activeShipments: number;
-  deliveredToday: number;
-  totalHubs: number;
-  totalVehicles: number;
-  totalAgents: number;
-  successRate: number;
-  avgDeliveryTime: string;
+// Exact shape returned by analytics.service.ts → getWorkspaceAnalytics()
+interface ShipmentStats {
+  total: number;
+  delivered: number;
+  pending: number;
+  inTransit: number;
+  outForDelivery: number;
+  failed: number;
 }
 
-interface RecentShipment {
-  id: string;
-  trackingId: string;
-  status: string;
-  origin: string;
-  destination: string;
-  createdAt: string;
+interface DailyShipment {
+  date: string;
+  total: number;
 }
 
-async function getAnalytics(): Promise<AnalyticsOverview | null> {
+interface WorkspaceAnalytics {
+  shipments: ShipmentStats;
+  agents: number;
+  customers: number;
+  dailyShipments: DailyShipment[];
+}
+
+async function getAnalytics(): Promise<WorkspaceAnalytics | null> {
   try {
-    const res = await serverFetch<{ data: AnalyticsOverview }>("analytics");
+    const res = await serverFetch<{ data: WorkspaceAnalytics }>(
+      "analytics/workspace",
+    );
     return res.data;
   } catch {
     return null;
   }
 }
 
-async function getRecentShipments(): Promise<RecentShipment[]> {
-  try {
-    const res = await serverFetch<{ data: { shipments: RecentShipment[] } }>(
-      "shipments?limit=5",
-    );
-    return res.data.shipments ?? [];
-  } catch {
-    return [];
-  }
-}
+const statusColors: Record<string, { bg: string; text: string; icon: string }> =
+  {
+    total: {
+      bg: "var(--color-primary-container)",
+      text: "var(--color-on-primary)",
+      icon: "#8590a6",
+    },
+    transit: {
+      bg: "var(--color-tertiary-container)",
+      text: "var(--color-on-tertiary-container)",
+      icon: "var(--color-secondary-container)",
+    },
+    delivered: {
+      bg: "var(--color-success-container)",
+      text: "var(--color-on-success-container)",
+      icon: "var(--color-success)",
+    },
+    failed: {
+      bg: "var(--color-error-container)",
+      text: "var(--color-on-error-container)",
+      icon: "var(--color-error)",
+    },
+  };
 
 export default async function DashboardPage() {
-  const [analytics, recentShipments] = await Promise.all([
-    getAnalytics(),
-    getRecentShipments(),
-  ]);
+  const analytics = await getAnalytics();
 
-  const stats = [
+  const kpis = [
     {
       label: "Total Shipments",
-      value: analytics?.totalShipments?.toLocaleString() ?? "—",
-      sub: `${analytics?.activeShipments ?? 0} currently active`,
-      icon: PackageSearch,
-      iconColor: "var(--color-primary)",
-      trend: "up" as const,
-      trendValue: "12%",
+      value: analytics?.shipments.total ?? "—",
+      icon: Package,
+      colorKey: "total",
+      sub: "All time",
     },
     {
-      label: "Delivered Today",
-      value: analytics?.deliveredToday?.toLocaleString() ?? "—",
-      icon: TrendingUp,
-      iconColor: "var(--color-success)",
-      trend: "up" as const,
-      trendValue: "8%",
-    },
-    {
-      label: "Active Hubs",
-      value: analytics?.totalHubs?.toLocaleString() ?? "—",
-      icon: Warehouse,
-      iconColor: "var(--color-tertiary-container)",
-    },
-    {
-      label: "Vehicles",
-      value: analytics?.totalVehicles?.toLocaleString() ?? "—",
+      label: "In Transit",
+      // inTransit + outForDelivery = actively moving
+      value: analytics
+        ? analytics.shipments.inTransit + analytics.shipments.outForDelivery
+        : "—",
       icon: Truck,
-      iconColor: "var(--color-secondary)",
+      colorKey: "transit",
+      sub: "Active right now",
     },
     {
-      label: "Agents",
-      value: analytics?.totalAgents?.toLocaleString() ?? "—",
-      icon: Users,
-      iconColor: "var(--color-primary-container)",
+      label: "Delivered",
+      value: analytics?.shipments.delivered ?? "—",
+      icon: CheckCircle2,
+      colorKey: "delivered",
+      sub: "Successfully completed",
     },
     {
-      label: "Avg Delivery Time",
-      value: analytics?.avgDeliveryTime ?? "—",
-      icon: Clock,
-      sub: `${analytics?.successRate ?? 0}% success rate`,
+      label: "Failed / Returned",
+      value: analytics?.shipments.failed ?? "—",
+      icon: AlertCircle,
+      colorKey: "failed",
+      sub: "Needs attention",
     },
   ];
 
@@ -110,7 +113,6 @@ export default async function DashboardPage() {
             fontFamily: "var(--font-display)",
             fontSize: "var(--text-headline-sm)",
             color: "var(--color-on-surface)",
-            letterSpacing: "-0.015em",
           }}
         >
           Overview
@@ -119,166 +121,220 @@ export default async function DashboardPage() {
           style={{
             fontSize: "var(--text-body-md)",
             color: "var(--color-on-surface-variant)",
-            marginTop: "2px",
+            marginTop: "0.25rem",
           }}
         >
-          Your logistics operation at a glance
+          Live snapshot of your logistics operations
         </p>
       </div>
 
       {/* KPI grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {stats.map((s) => (
-          <StatCard key={s.label} {...s} />
-        ))}
-      </div>
-
-      {/* Recent shipments */}
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{
-          backgroundColor: "var(--color-surface-lowest)",
-          border: "1px solid var(--color-outline-variant)",
-          boxShadow: "var(--shadow-card)",
-        }}
-      >
-        {/* Table header */}
-        <div
-          className="flex items-center justify-between px-6 py-4"
-          style={{ borderBottom: "1px solid var(--color-outline-variant)" }}
-        >
-          <h2
-            className="font-semibold"
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "var(--text-title-md)",
-              color: "var(--color-on-surface)",
-            }}
-          >
-            Recent Shipments
-          </h2>
-          <a
-            href="/shipments"
-            className="font-medium transition-opacity hover:opacity-70"
-            style={{
-              fontSize: "var(--text-body-sm)",
-              color: "var(--color-secondary-container)",
-            }}
-          >
-            View all →
-          </a>
-        </div>
-
-        {recentShipments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <PackageSearch
-              size={36}
-              style={{ color: "var(--color-outline-variant)" }}
-            />
-            <p
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {kpis.map(({ label, value, icon: Icon, colorKey, sub }) => {
+          const c = statusColors[colorKey];
+          return (
+            <div
+              key={label}
+              className="rounded-xl p-5 flex flex-col gap-4"
               style={{
-                fontSize: "var(--text-body-md)",
-                color: "var(--color-on-surface-variant)",
+                backgroundColor: c.bg,
+                boxShadow: "var(--shadow-card)",
               }}
             >
-              No shipments yet
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="data-table w-full">
-              <thead>
-                <tr
+              <div className="flex items-start justify-between">
+                <p
+                  className="font-medium"
                   style={{
-                    borderBottom: "1px solid var(--color-outline-variant)",
+                    fontSize: "var(--text-label-lg)",
+                    color: c.text,
+                    opacity: 0.8,
                   }}
                 >
-                  {[
-                    "Tracking ID",
-                    "Origin",
-                    "Destination",
-                    "Status",
-                    "Date",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="text-left px-6 py-3"
-                      style={{
-                        fontSize: "var(--text-label-md)",
-                        color: "var(--color-on-surface-variant)",
-                        fontWeight: 600,
-                        letterSpacing: "0.06em",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {recentShipments.map((s, i) => (
-                  <tr
-                    key={s.id}
-                    style={{
-                      borderBottom:
-                        i < recentShipments.length - 1
-                          ? "1px solid var(--color-outline-variant)"
-                          : "none",
-                    }}
-                  >
-                    <td className="px-6 py-4">
-                      <span
-                        className="font-mono font-medium"
-                        style={{
-                          fontSize: "var(--text-body-md)",
-                          color: "var(--color-primary)",
-                        }}
-                      >
-                        {s.trackingId}
-                      </span>
-                    </td>
-                    <td
-                      className="px-6 py-4"
-                      style={{
-                        fontSize: "var(--text-body-md)",
-                        color: "var(--color-on-surface)",
-                      }}
-                    >
-                      {s.origin}
-                    </td>
-                    <td
-                      className="px-6 py-4"
-                      style={{
-                        fontSize: "var(--text-body-md)",
-                        color: "var(--color-on-surface)",
-                      }}
-                    >
-                      {s.destination}
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={s.status} />
-                    </td>
-                    <td
-                      className="px-6 py-4"
-                      style={{
-                        fontSize: "var(--text-body-sm)",
-                        color: "var(--color-on-surface-variant)",
-                      }}
-                    >
-                      {new Date(s.createdAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                  {label}
+                </p>
+                <Icon size={18} style={{ color: c.icon, opacity: 0.9 }} />
+              </div>
+              <div>
+                <p
+                  className="font-bold"
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "var(--text-headline-md)",
+                    color: c.text,
+                    lineHeight: 1,
+                  }}
+                >
+                  {typeof value === "number" ? value.toLocaleString() : value}
+                </p>
+                <p
+                  style={{
+                    fontSize: "var(--text-label-md)",
+                    color: c.text,
+                    opacity: 0.55,
+                    marginTop: "0.25rem",
+                  }}
+                >
+                  {sub}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      {/* Agents & customers summary */}
+      {analytics && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[
+            { label: "Delivery Agents", value: analytics.agents, icon: Users },
+            {
+              label: "Customers",
+              value: analytics.customers,
+              icon: TrendingUp,
+            },
+          ].map(({ label, value, icon: Icon }) => (
+            <div
+              key={label}
+              className="rounded-xl p-5 flex items-center gap-4"
+              style={{
+                backgroundColor: "var(--color-surface-lowest)",
+                border: "1px solid var(--color-outline-variant)",
+                boxShadow: "var(--shadow-card)",
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                style={{ backgroundColor: "var(--color-surface-low)" }}
+              >
+                <Icon size={18} style={{ color: "var(--color-primary)" }} />
+              </div>
+              <div>
+                <p
+                  className="font-bold"
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "var(--text-title-lg)",
+                    color: "var(--color-on-surface)",
+                  }}
+                >
+                  {value.toLocaleString()}
+                </p>
+                <p
+                  style={{
+                    fontSize: "var(--text-label-md)",
+                    color: "var(--color-on-surface-variant)",
+                  }}
+                >
+                  {label}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Quick actions */}
+      <div>
+        <h2
+          className="font-semibold mb-4"
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "var(--text-title-lg)",
+            color: "var(--color-on-surface)",
+          }}
+        >
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            {
+              label: "New Shipment",
+              href: "/shipments",
+              icon: Package,
+              desc: "Create and dispatch",
+            },
+            {
+              label: "Track a Package",
+              href: "/tracking",
+              icon: TrendingUp,
+              desc: "Live location updates",
+            },
+            {
+              label: "Pending Reviews",
+              href: "/shipments?status=failed",
+              icon: Clock,
+              desc: "Failed & retry queue",
+            },
+          ].map(({ label, href, icon: Icon, desc }) => (
+            <a
+              key={href}
+              href={href}
+              className="flex items-center gap-4 rounded-xl p-4 transition-all hover:shadow-md group"
+              style={{
+                backgroundColor: "var(--color-surface-lowest)",
+                border: "1px solid var(--color-outline-variant)",
+                textDecoration: "none",
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                style={{ backgroundColor: "var(--color-surface-low)" }}
+              >
+                <Icon
+                  size={18}
+                  style={{ color: "var(--color-secondary-container)" }}
+                />
+              </div>
+              <div>
+                <p
+                  className="font-semibold"
+                  style={{
+                    fontSize: "var(--text-body-md)",
+                    color: "var(--color-on-surface)",
+                  }}
+                >
+                  {label}
+                </p>
+                <p
+                  style={{
+                    fontSize: "var(--text-label-md)",
+                    color: "var(--color-on-surface-variant)",
+                  }}
+                >
+                  {desc}
+                </p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* Empty state if no analytics */}
+      {!analytics && (
+        <div
+          className="rounded-xl p-8 text-center"
+          style={{
+            backgroundColor: "var(--color-surface-low)",
+            border: "1px dashed var(--color-outline-variant)",
+          }}
+        >
+          <AlertCircle
+            size={32}
+            style={{
+              color: "var(--color-on-surface-variant)",
+              margin: "0 auto 0.75rem",
+            }}
+          />
+          <p
+            style={{
+              fontSize: "var(--text-body-md)",
+              color: "var(--color-on-surface-variant)",
+            }}
+          >
+            Could not load analytics. Make sure the backend is running.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
