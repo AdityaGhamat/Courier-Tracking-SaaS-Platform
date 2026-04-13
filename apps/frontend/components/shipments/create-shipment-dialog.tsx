@@ -15,21 +15,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CreateShipmentInput } from "@/types/shipment.types";
 
+const EMPTY_FORM: CreateShipmentInput = {
+  recipientName: "",
+  recipientAddress: "",
+  recipientPhone: "",
+  recipientEmail: "",
+  weight: "",
+  estimatedDelivery: "",
+  hubId: "",
+};
+
 export function CreateShipmentDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [form, setForm] = useState<CreateShipmentInput>({
-    recipientName: "",
-    recipientAddress: "",
-    recipientPhone: "",
-    recipientEmail: "",
-    weight: "",
-    estimatedDelivery: "",
-    hubId: "",
-  });
+  const [form, setForm] = useState<CreateShipmentInput>(EMPTY_FORM);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -40,7 +41,6 @@ export function CreateShipmentDialog() {
     setLoading(true);
     setError(null);
 
-    // Strip empty optional fields
     const payload: CreateShipmentInput = {
       recipientName: form.recipientName,
       recipientAddress: form.recipientAddress,
@@ -56,15 +56,7 @@ export function CreateShipmentDialog() {
     try {
       await shipmentsApi.create(payload);
       setOpen(false);
-      setForm({
-        recipientName: "",
-        recipientAddress: "",
-        recipientPhone: "",
-        recipientEmail: "",
-        weight: "",
-        estimatedDelivery: "",
-        hubId: "",
-      });
+      setForm(EMPTY_FORM);
       router.refresh();
     } catch (err: any) {
       setError(err?.message ?? "Failed to create shipment");
@@ -76,35 +68,18 @@ export function CreateShipmentDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>+ New Shipment</Button>
+        <Button className="bg-[#fd761a] hover:bg-[#ea620c] text-white border-transparent">
+          + New Shipment
+        </Button>
       </DialogTrigger>
-      <DialogContent style={{ maxWidth: "520px" }}>
+      <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>Create Shipment</DialogTitle>
         </DialogHeader>
 
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-4)",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "var(--space-4)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-2)",
-              }}
-            >
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="recipientName">Recipient Name *</Label>
               <Input
                 id="recipientName"
@@ -115,13 +90,7 @@ export function CreateShipmentDialog() {
                 required
               />
             </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-2)",
-              }}
-            >
+            <div className="flex flex-col gap-2">
               <Label htmlFor="recipientPhone">Phone</Label>
               <Input
                 id="recipientPhone"
@@ -133,13 +102,7 @@ export function CreateShipmentDialog() {
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-2)",
-            }}
-          >
+          <div className="flex flex-col gap-2">
             <Label htmlFor="recipientAddress">Delivery Address *</Label>
             <Input
               id="recipientAddress"
@@ -151,13 +114,7 @@ export function CreateShipmentDialog() {
             />
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-2)",
-            }}
-          >
+          <div className="flex flex-col gap-2">
             <Label htmlFor="recipientEmail">Recipient Email</Label>
             <Input
               id="recipientEmail"
@@ -169,20 +126,8 @@ export function CreateShipmentDialog() {
             />
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "var(--space-4)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-2)",
-              }}
-            >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="weight">Weight (kg)</Label>
               <Input
                 id="weight"
@@ -192,13 +137,7 @@ export function CreateShipmentDialog() {
                 onChange={handleChange}
               />
             </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-2)",
-              }}
-            >
+            <div className="flex flex-col gap-2">
               <Label htmlFor="estimatedDelivery">Est. Delivery</Label>
               <Input
                 id="estimatedDelivery"
@@ -210,13 +149,7 @@ export function CreateShipmentDialog() {
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-2)",
-            }}
-          >
+          <div className="flex flex-col gap-2">
             <Label htmlFor="hubId">Hub ID (optional)</Label>
             <Input
               id="hubId"
@@ -227,25 +160,9 @@ export function CreateShipmentDialog() {
             />
           </div>
 
-          {error && (
-            <p
-              style={{
-                fontSize: "var(--text-sm)",
-                color: "var(--color-error)",
-              }}
-            >
-              {error}
-            </p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "var(--space-3)",
-              paddingTop: "var(--space-2)",
-            }}
-          >
+          <div className="flex justify-end gap-3 pt-2">
             <Button
               type="button"
               variant="outline"
@@ -253,7 +170,11 @@ export function CreateShipmentDialog() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-[#fd761a] hover:bg-[#ea620c] text-white border-transparent"
+            >
               {loading ? "Creating…" : "Create Shipment"}
             </Button>
           </div>

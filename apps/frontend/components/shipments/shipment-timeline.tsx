@@ -100,23 +100,60 @@ const StatusIcon = ({ status }: { status: ShipmentStatus }) => {
   }
 };
 
-const STATUS_META: Record<ShipmentStatus, { label: string; color: string }> = {
-  label_created: { label: "Label Created", color: "var(--color-text-muted)" },
-  picked_up: { label: "Picked Up", color: "var(--color-blue)" },
+const STATUS_META: Record<
+  ShipmentStatus,
+  { label: string; textClass: string; borderClass: string }
+> = {
+  label_created: {
+    label: "Label Created",
+    textClass: "text-muted-foreground",
+    borderClass: "border-muted-foreground/50",
+  },
+  picked_up: {
+    label: "Picked Up",
+    textClass: "text-blue-500",
+    borderClass: "border-blue-500",
+  },
   at_sorting_facility: {
     label: "At Sorting Facility",
-    color: "var(--color-gold)",
+    textClass: "text-yellow-500",
+    borderClass: "border-yellow-500",
   },
-  in_transit: { label: "In Transit", color: "var(--color-orange)" },
+  in_transit: {
+    label: "In Transit",
+    textClass: "text-orange-500",
+    borderClass: "border-orange-500",
+  },
   out_for_delivery: {
     label: "Out for Delivery",
-    color: "var(--color-primary)",
+    textClass: "text-[#fd761a]",
+    borderClass: "border-[#fd761a]",
   },
-  delivered: { label: "Delivered", color: "var(--color-success)" },
-  failed: { label: "Failed", color: "var(--color-error)" },
-  retry: { label: "Retry", color: "var(--color-warning)" },
-  returned: { label: "Returned", color: "var(--color-warning)" },
-  exception: { label: "Exception", color: "var(--color-error)" },
+  delivered: {
+    label: "Delivered",
+    textClass: "text-green-500",
+    borderClass: "border-green-500",
+  },
+  failed: {
+    label: "Failed",
+    textClass: "text-destructive",
+    borderClass: "border-destructive",
+  },
+  retry: {
+    label: "Retry",
+    textClass: "text-yellow-600",
+    borderClass: "border-yellow-600",
+  },
+  returned: {
+    label: "Returned",
+    textClass: "text-yellow-600",
+    borderClass: "border-yellow-600",
+  },
+  exception: {
+    label: "Exception",
+    textClass: "text-destructive",
+    borderClass: "border-destructive",
+  },
 };
 
 interface Props {
@@ -126,14 +163,7 @@ interface Props {
 export function ShipmentTimeline({ events }: Props) {
   if (!events || events.length === 0) {
     return (
-      <div
-        style={{
-          padding: "var(--space-8)",
-          textAlign: "center",
-          color: "var(--color-text-muted)",
-          fontSize: "var(--text-sm)",
-        }}
-      >
+      <div className="p-8 text-center text-sm text-muted-foreground">
         No tracking events yet.
       </div>
     );
@@ -144,112 +174,50 @@ export function ShipmentTimeline({ events }: Props) {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column" }}>
+    <div className="flex flex-col w-full">
       {sorted.map((event, idx) => {
         const meta = STATUS_META[event.status] ?? {
           label: event.status,
-          color: "var(--color-text-muted)",
+          textClass: "text-muted-foreground",
+          borderClass: "border-muted-foreground/50",
         };
         const isLast = idx === sorted.length - 1;
 
         return (
-          <div
-            key={event.id}
-            style={{ display: "flex", gap: "var(--space-4)" }}
-          >
+          <div key={event.id} className="flex gap-4 w-full min-w-0">
             {/* Spine */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                flexShrink: 0,
-                width: "32px",
-              }}
-            >
+            <div className="flex flex-col items-center shrink-0 w-8">
               <div
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "var(--radius-full)",
-                  background: "var(--color-surface-offset)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: `2px solid ${meta.color}`,
-                  color: meta.color,
-                  flexShrink: 0,
-                }}
+                className={[
+                  "w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0 bg-muted",
+                  meta.textClass,
+                  meta.borderClass,
+                ].join(" ")}
               >
                 <StatusIcon status={event.status} />
               </div>
-              {!isLast && (
-                <div
-                  style={{
-                    width: "2px",
-                    flexGrow: 1,
-                    minHeight: "var(--space-8)",
-                    background: "var(--color-divider)",
-                    margin: "var(--space-1) 0",
-                  }}
-                />
-              )}
+              {!isLast && <div className="w-0.5 grow min-h-8 bg-border my-1" />}
             </div>
 
             {/* Content */}
-            <div
-              style={{
-                paddingBottom: isLast ? "0" : "var(--space-6)",
-                paddingTop: "var(--space-1)",
-                flex: 1,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-2)",
-                  flexWrap: "wrap",
-                }}
-              >
+            <div className={`flex-1 min-w-0 pt-1 ${isLast ? "pb-0" : "pb-6"}`}>
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <span
-                  style={{
-                    fontWeight: 600,
-                    fontSize: "var(--text-sm)",
-                    color: meta.color,
-                  }}
+                  className={`font-semibold text-sm truncate ${meta.textClass}`}
                 >
                   {meta.label}
                 </span>
-                <span
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-faint)",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
+                <span className="text-xs text-muted-foreground tabular-nums shrink-0">
                   {new Date(event.timestamp).toLocaleString()}
                 </span>
               </div>
               {event.location && (
-                <p
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    color: "var(--color-text-muted)",
-                    margin: "var(--space-1) 0 0",
-                  }}
-                >
+                <p className="text-sm text-muted-foreground mt-1 break-words">
                   {event.location}
                 </p>
               )}
               {event.description && (
-                <p
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    color: "var(--color-text)",
-                    margin: "var(--space-1) 0 0",
-                  }}
-                >
+                <p className="text-sm text-foreground mt-1 break-words">
                   {event.description}
                 </p>
               )}

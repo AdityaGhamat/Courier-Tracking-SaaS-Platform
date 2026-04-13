@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Bell, LogOut, Menu } from "lucide-react";
+import { Search, Bell, LogOut } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 
 export function Topbar() {
@@ -10,30 +10,21 @@ export function Topbar() {
 
   async function handleLogout() {
     setLoggingOut(true);
-    await logout(); // AuthContext.logout() handles redirect + setUser(null)
+    await logout();
   }
 
   return (
     <header
-      className="flex items-center gap-4 px-6 lg:px-8 h-16 shrink-0"
+      className="hidden lg:flex items-center gap-4 px-6 lg:px-8 h-16 shrink-0 z-10"
       style={{
         backgroundColor: "var(--color-surface-lowest)",
         borderBottom: "1px solid var(--color-outline-variant)",
       }}
     >
-      {/* Mobile menu placeholder (wired in MobileNav) */}
-      <button
-        className="lg:hidden p-2 rounded-lg"
-        style={{ color: "var(--color-on-surface-variant)" }}
-        aria-label="Open menu"
-      >
-        <Menu size={20} />
-      </button>
-
       {/* Search */}
       <div className="flex-1 max-w-md">
         <div
-          className="flex items-center gap-2 px-3 py-2 rounded-lg"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors focus-within:ring-2 focus-within:ring-[#fd761a]"
           style={{ backgroundColor: "var(--color-surface-low)" }}
         >
           <Search
@@ -50,13 +41,11 @@ export function Topbar() {
             }}
           />
           <kbd
-            className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded"
+            className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-[10px]"
             style={{
-              fontSize: "var(--text-label-sm)",
               color: "var(--color-on-surface-variant)",
               backgroundColor: "var(--color-surface-dim)",
               border: "1px solid var(--color-outline-variant)",
-              fontFamily: "monospace",
             }}
           >
             ⌘K
@@ -67,7 +56,7 @@ export function Topbar() {
       <div className="flex items-center gap-2 ml-auto">
         {/* Notifications */}
         <button
-          className="relative p-2 rounded-lg transition-colors"
+          className="relative p-2 rounded-lg transition-colors hover:bg-black/5"
           style={{ color: "var(--color-on-surface-variant)" }}
           aria-label="Notifications"
         >
@@ -97,7 +86,7 @@ export function Topbar() {
               >
                 {user.name?.[0]?.toUpperCase() ?? user.role[0].toUpperCase()}
               </div>
-              <div className="hidden sm:block">
+              <div className="hidden sm:block text-left">
                 <p
                   className="font-medium leading-tight"
                   style={{
@@ -123,7 +112,7 @@ export function Topbar() {
           <button
             onClick={handleLogout}
             disabled={loggingOut}
-            className="p-2 rounded-lg transition-colors disabled:opacity-50"
+            className="p-2 rounded-lg transition-colors hover:bg-black/5 disabled:opacity-50 ml-1"
             style={{ color: "var(--color-on-surface-variant)" }}
             aria-label="Sign out"
             title="Sign out"

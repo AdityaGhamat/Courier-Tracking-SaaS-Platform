@@ -14,11 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-interface Props {
-  shipmentId: string;
-}
-
-export function AssignAgentDialog({ shipmentId }: Props) {
+export function AssignAgentDialog({ shipmentId }: { shipmentId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [agentId, setAgentId] = useState("");
@@ -47,25 +43,12 @@ export function AssignAgentDialog({ shipmentId }: Props) {
       <DialogTrigger asChild>
         <Button variant="outline">Assign Agent</Button>
       </DialogTrigger>
-      <DialogContent style={{ maxWidth: "400px" }}>
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Assign Delivery Agent</DialogTitle>
         </DialogHeader>
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-4)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-2)",
-            }}
-          >
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="agentId">Agent ID</Label>
             <Input
               id="agentId"
@@ -74,46 +57,25 @@ export function AssignAgentDialog({ shipmentId }: Props) {
               onChange={(e) => setAgentId(e.target.value)}
               required
             />
-            <p
-              style={{
-                fontSize: "var(--text-xs)",
-                color: "var(--color-text-muted)",
-              }}
-            >
-              Find the agent UUID from the Agents list page.
-            </p>
           </div>
-
-          {error && (
-            <p
-              style={{
-                fontSize: "var(--text-sm)",
-                color: "var(--color-error)",
-              }}
-            >
-              {error}
-            </p>
-          )}
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "var(--space-3)",
-            }}
-          >
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <div className="flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setOpen(false);
-                setAgentId("");
-                setError(null);
-              }}
+              onClick={() => setOpen(false)}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !agentId.trim()}>
+            <Button
+              type="submit"
+              disabled={loading || !agentId.trim()}
+              style={{
+                backgroundColor: "#fd761a",
+                color: "white",
+                border: "none",
+              }} // FORCED ORANGE
+            >
               {loading ? "Assigning…" : "Assign"}
             </Button>
           </div>

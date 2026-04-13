@@ -38,25 +38,13 @@ const STATUSES: ShipmentStatus[] = [
   "exception",
 ];
 
-const STATUS_LABELS: Record<ShipmentStatus, string> = {
-  label_created: "Label Created",
-  picked_up: "Picked Up",
-  at_sorting_facility: "At Sorting Facility",
-  in_transit: "In Transit",
-  out_for_delivery: "Out for Delivery",
-  delivered: "Delivered",
-  failed: "Failed",
-  retry: "Retry",
-  returned: "Returned",
-  exception: "Exception",
-};
-
-interface Props {
+export function UpdateStatusDialog({
+  shipmentId,
+  currentStatus,
+}: {
   shipmentId: string;
   currentStatus: ShipmentStatus;
-}
-
-export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -70,7 +58,6 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     try {
       await shipmentsApi.updateStatus(shipmentId, form);
       setOpen(false);
@@ -85,32 +72,23 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Update Status</Button>
+        <Button
+          style={{ backgroundColor: "#fd761a", color: "white", border: "none" }}
+        >
+          Update Status
+        </Button>
       </DialogTrigger>
-      <DialogContent style={{ maxWidth: "440px" }}>
+      <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle>Update Shipment Status</DialogTitle>
         </DialogHeader>
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-4)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-2)",
-            }}
-          >
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
             <Label>New Status</Label>
             <Select
               value={form.status}
               onValueChange={(val) =>
-                setForm((prev) => ({ ...prev, status: val as ShipmentStatus }))
+                setForm((p) => ({ ...p, status: val as ShipmentStatus }))
               }
             >
               <SelectTrigger>
@@ -119,69 +97,34 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
               <SelectContent>
                 {STATUSES.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {STATUS_LABELS[s]}
+                    {s.replace(/_/g, " ")}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-2)",
-            }}
-          >
-            <Label htmlFor="location">Location *</Label>
+          <div className="flex flex-col gap-2">
+            <Label>Location</Label>
             <Input
-              id="location"
-              placeholder="e.g. Mumbai Hub, Maharashtra"
               value={form.location}
               onChange={(e) =>
-                setForm((prev) => ({ ...prev, location: e.target.value }))
+                setForm((p) => ({ ...p, location: e.target.value }))
               }
               required
             />
           </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-2)",
-            }}
-          >
-            <Label htmlFor="description">Description *</Label>
+          <div className="flex flex-col gap-2">
+            <Label>Description</Label>
             <Input
-              id="description"
-              placeholder="e.g. Package scanned at sorting facility"
               value={form.description}
               onChange={(e) =>
-                setForm((prev) => ({ ...prev, description: e.target.value }))
+                setForm((p) => ({ ...p, description: e.target.value }))
               }
               required
             />
           </div>
-
-          {error && (
-            <p
-              style={{
-                fontSize: "var(--text-sm)",
-                color: "var(--color-error)",
-              }}
-            >
-              {error}
-            </p>
-          )}
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "var(--space-3)",
-            }}
-          >
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <div className="flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
@@ -189,7 +132,15 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button
+              type="submit"
+              disabled={loading}
+              style={{
+                backgroundColor: "#fd761a",
+                color: "white",
+                border: "none",
+              }}
+            >
               {loading ? "Updating…" : "Update Status"}
             </Button>
           </div>
