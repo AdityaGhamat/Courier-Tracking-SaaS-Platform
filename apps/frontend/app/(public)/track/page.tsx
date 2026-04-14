@@ -1,159 +1,86 @@
-import Link from "next/link";
+import { Suspense } from "react";
 import { TrackingSearchForm } from "@/components/tracking/tracking-search-form";
-
-export const metadata = {
-  title: "Track Your Shipment",
-  description: "Enter your tracking number to get live status updates.",
-};
+import { Loader2 } from "lucide-react";
 
 interface PageProps {
   searchParams: Promise<{ q?: string }>;
 }
 
-export default async function PublicTrackPage({ searchParams }: PageProps) {
-  const { q } = await searchParams;
+export const metadata = {
+  title: "Track Shipment",
+  description: "Track your shipment in real-time with your tracking number.",
+};
 
+function TrackingShell({ initialQuery }: { initialQuery: string }) {
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: "var(--color-bg)",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Minimal nav */}
-      <header
-        style={{
-          padding: "var(--space-4) var(--space-6)",
-          borderBottom: "1px solid var(--color-border)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Link
-          href="/"
-          style={{
-            fontWeight: 700,
-            fontSize: "var(--text-base)",
-            color: "var(--color-text)",
-            textDecoration: "none",
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--space-2)",
-          }}
-        >
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 28 28"
-            fill="none"
-            aria-label="CourierTrack logo"
-          >
-            <rect width="28" height="28" rx="6" fill="var(--color-primary)" />
-            <path
-              d="M7 14h14M14 7l7 7-7 7"
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 px-4 py-4 shadow-sm">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
               stroke="white"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-            />
-          </svg>
-          CourierTrack
-        </Link>
-        <Link
-          href="/login"
-          style={{
-            fontSize: "var(--text-sm)",
-            color: "var(--color-primary)",
-            textDecoration: "none",
-            fontWeight: 500,
-          }}
-        >
-          Sign in →
-        </Link>
+            >
+              <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z" />
+              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-slate-900 leading-none">
+              CourierTrack
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Real-time shipment tracking
+            </p>
+          </div>
+        </div>
       </header>
 
-      {/* Hero */}
-      <main
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "var(--space-12) var(--space-6)",
-        }}
-      >
-        <div style={{ width: "100%", maxWidth: "560px" }}>
-          <div style={{ textAlign: "center", marginBottom: "var(--space-8)" }}>
-            {/* SVG illustration — replaces 📦 emoji */}
-            <div
-              style={{
-                width: "64px",
-                height: "64px",
-                margin: "0 auto var(--space-4)",
-                background: "var(--color-primary-highlight)",
-                borderRadius: "var(--radius-xl)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--color-primary)",
-              }}
-            >
-              <svg
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-            </div>
-
-            <h1
-              style={{
-                fontSize: "var(--text-2xl)",
-                fontWeight: 800,
-                color: "var(--color-text)",
-                lineHeight: 1.1,
-                marginBottom: "var(--space-3)",
-              }}
-            >
-              Track your shipment
+      {/* Main */}
+      <main className="flex-1 px-4 py-10">
+        <div className="max-w-3xl mx-auto flex flex-col gap-6">
+          {/* Hero */}
+          <div className="text-center flex flex-col gap-2">
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              Track Your Shipment
             </h1>
-            <p
-              style={{
-                fontSize: "var(--text-base)",
-                color: "var(--color-text-muted)",
-              }}
-            >
-              Enter your tracking number for live status updates.
+            <p className="text-sm text-slate-500">
+              Enter your tracking number to get real-time delivery updates.
             </p>
           </div>
 
-          {/* Pass initial query from URL so deep-links work */}
-          <TrackingSearchForm initialQuery={q ?? ""} />
+          {/* Search form + results */}
+          <TrackingSearchForm initialQuery={initialQuery} />
         </div>
       </main>
 
-      <footer
-        style={{
-          padding: "var(--space-4) var(--space-6)",
-          borderTop: "1px solid var(--color-border)",
-          textAlign: "center",
-          fontSize: "var(--text-xs)",
-          color: "var(--color-text-faint)",
-        }}
-      >
-        © {new Date().getFullYear()} CourierTrack
+      {/* Footer */}
+      <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
+        Powered by CourierTrack · Real-time delivery intelligence
       </footer>
     </div>
+  );
+}
+
+export default async function PublicTrackPage({ searchParams }: PageProps) {
+  const { q = "" } = await searchParams;
+
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <Loader2 size={32} className="animate-spin text-indigo-400" />
+        </div>
+      }
+    >
+      <TrackingShell initialQuery={q} />
+    </Suspense>
   );
 }

@@ -37,18 +37,14 @@
   --color-on-surface-variant: #475569;
   --color-outline-variant: #cbd5e1;
 
-  /* ── Semantic: Error */
+  /* ── Semantic */
   --color-error: #dc2626;
   --color-error-container: #fee2e2;
   --color-on-error: #ffffff;
   --color-on-error-container: #7f1d1d;
-
-  /* ── Semantic: Success */
   --color-success: #16a34a;
   --color-success-container: #dcfce7;
   --color-on-success-container: #14532d;
-
-  /* ── Semantic: Warning */
   --color-warning: #d97706;
   --color-warning-container: #fef3c7;
   --color-on-warning-container: #78350f;
@@ -126,43 +122,61 @@
     text-wrap: balance;
   }
 
-  /*
-   * shadcn CSS variable bridge.
-   * shadcn expects HSL triplets (no hsl() wrapper) in --background, --foreground, etc.
-   * We map our custom tokens here.
-   */
+  /* ─────────────────────────────────────────────────────
+   * shadcn CSS variable bridge (HSL triplets, no wrapper)
+   * ─────────────────────────────────────────────────── */
   :root {
-    --background: 248 250 252; /* surface */
-    --foreground: 15 23 42; /* on-surface */
+    /* Page */
+    --background: 248 250 252;
+    --foreground: 15 23 42;
 
+    /* Cards / Popovers */
     --card: 255 255 255;
     --card-foreground: 15 23 42;
-
     --popover: 255 255 255;
     --popover-foreground: 15 23 42;
 
-    --primary: 79 70 229; /* indigo-600 */
+    /* Brand */
+    --primary: 79 70 229;
     --primary-foreground: 255 255 255;
 
-    --secondary: 241 245 249; /* slate-100 */
+    /* Neutral secondary */
+    --secondary: 241 245 249;
     --secondary-foreground: 15 23 42;
 
+    /* Muted */
     --muted: 241 245 249;
-    --muted-foreground: 100 116 139; /* slate-500 */
+    --muted-foreground: 100 116 139;
 
-    --accent: 224 231 255; /* indigo-100 */
-    --accent-foreground: 49 46 129; /* indigo-900 */
+    /* Accent */
+    --accent: 224 231 255;
+    --accent-foreground: 49 46 129;
 
+    /* Destructive */
     --destructive: 220 38 38;
     --destructive-foreground: 255 255 255;
 
-    --border: 203 213 225; /* slate-300 */
+    /* Inputs */
+    --border: 203 213 225;
     --input: 241 245 249;
-    --ring: 99 102 241; /* indigo-500 */
+    --ring: 99 102 241;
 
     --radius: 0.5rem;
 
-    /* Status badge colours used in shipment-timeline & status-badge */
+    /* ── Sidebar tokens (light) */
+    --sidebar-bg-from: #1e1b4b;
+    --sidebar-bg-to: #312e81;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-text: rgba(255, 255, 255, 0.55);
+    --sidebar-text-active: #ffffff;
+    --sidebar-icon-active: #a5b4fc;
+    --sidebar-active-bg: rgba(255, 255, 255, 0.15);
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+    --sidebar-active-pill: #6366f1;
+    --sidebar-logo-bg-from: #6366f1;
+    --sidebar-logo-bg-to: #4f46e5;
+
+    /* Status badge colours */
     --color-status-label: 100 116 139;
     --color-status-picked: 37 99 235;
     --color-status-sorting: 234 179 8;
@@ -174,10 +188,53 @@
     --color-status-returned: 202 138 4;
     --color-status-except: 220 38 38;
   }
+
+  /* ─────────────────────────────────────────────────────
+   * Dark mode — applied via .dark class on <html>
+   * ─────────────────────────────────────────────────── */
+  .dark {
+    --background: 15 23 42;
+    --foreground: 226 232 240;
+
+    --card: 22 32 55;
+    --card-foreground: 226 232 240;
+    --popover: 22 32 55;
+    --popover-foreground: 226 232 240;
+
+    --primary: 99 102 241;
+    --primary-foreground: 255 255 255;
+
+    --secondary: 30 41 59;
+    --secondary-foreground: 226 232 240;
+
+    --muted: 30 41 59;
+    --muted-foreground: 148 163 184;
+
+    --accent: 49 46 129;
+    --accent-foreground: 199 210 254;
+
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+
+    --border: 51 65 85;
+    --input: 30 41 59;
+    --ring: 99 102 241;
+
+    /* ── Sidebar tokens (dark — slightly brighter tones) */
+    --sidebar-bg-from: #12102d;
+    --sidebar-bg-to: #1e1b4b;
+    --sidebar-border: rgba(255, 255, 255, 0.06);
+    --sidebar-text: rgba(255, 255, 255, 0.45);
+    --sidebar-text-active: #ffffff;
+    --sidebar-icon-active: #818cf8;
+    --sidebar-active-bg: rgba(99, 102, 241, 0.2);
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
+    --sidebar-active-pill: #818cf8;
+  }
 }
 
 @layer utilities {
-  /* ── Kinetic CTA — indigo/violet gradient for primary actions */
+  /* ── Kinetic CTA */
   .btn-kinetic {
     background-image: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
     color: white;
@@ -197,8 +254,8 @@
   /* ── Sidebar active nav item */
   .nav-active {
     position: relative;
-    background-color: var(--color-primary-container);
-    color: var(--color-on-primary);
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-text-active);
   }
   .nav-active::before {
     content: "";
@@ -206,13 +263,13 @@
     left: 0;
     top: 50%;
     transform: translateY(-50%);
-    width: 4px;
-    height: 60%;
-    background: var(--color-secondary-container);
-    border-radius: 0 4px 4px 0;
+    width: 3px;
+    height: 55%;
+    background: var(--sidebar-active-pill);
+    border-radius: 0 3px 3px 0;
   }
 
-  /* ── Table header style */
+  /* ── Table */
   .data-table th {
     font-size: var(--text-label-md);
     letter-spacing: 0.08em;

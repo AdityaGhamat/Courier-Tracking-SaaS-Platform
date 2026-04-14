@@ -35,11 +35,18 @@ async function request<T>(
 ): Promise<T> {
   const { method = "GET", body, params, _retry = false } = options;
 
+  const isFormData =
+    typeof FormData !== "undefined" && body instanceof FormData;
+
   const res = await fetch(buildUrl(path, params), {
     method,
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(isFormData
+      ? { body }
+      : {
+          headers: { "Content-Type": "application/json" },
+          ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        }),
   });
 
   if (res.ok) {
@@ -114,6 +121,7 @@ async function request<T>(
   const error = new Error(
     (errData as { message?: string })?.message ?? "Something went wrong",
   ) as Error & { statusCode: number; errors: unknown };
+
   error.statusCode = res.status;
   error.errors = (errData as { errors?: unknown })?.errors;
   throw error;
@@ -138,7 +146,6 @@ export const shipmentsApi = {
   list: (params?: Params) => request("shipments", { params }),
   getById: (id: string) => request(`shipments/${id}`),
   create: (body: unknown) => request("shipments", { method: "POST", body }),
-  // FIX: backend requires status + location + description
   updateStatus: (
     id: string,
     body: { status: string; location: string; description: string },
@@ -168,13 +175,13 @@ export const hubsApi = {
   create: (body: unknown) => request("hubs", { method: "POST", body }),
   getById: (id: string) => request(`hubs/${id}`),
   update: (id: string, body: unknown) =>
-    request(`hubs/${id}`, { method: "PATCH", body }), // ← was PUT, fix to PATCH
+    request(`hubs/${id}`, { method: "PATCH", body }),
   delete: (id: string) => request(`hubs/${id}`, { method: "DELETE" }),
-
+  // FIX: removed manual JSON.stringify — request() already stringifies body
   assignShipment: (shipmentId: string, hubId: string) =>
     request(`hubs/shipments/${shipmentId}/assign`, {
       method: "POST",
-      body: JSON.stringify({ hubId }),
+      body: { hubId },
     }),
   getShipments: (hubId: string) => request(`hubs/${hubId}/shipments`),
 };
@@ -186,10 +193,11 @@ export const vehiclesApi = {
   update: (id: string, body: unknown) =>
     request(`vehicles/${id}`, { method: "PUT", body }),
   delete: (id: string) => request(`vehicles/${id}`, { method: "DELETE" }),
+  // FIX: removed manual JSON.stringify — request() already stringifies body
   assignAgent: (vehicleId: string, body: { agentId: string }) =>
     request(`vehicles/${vehicleId}/assign-agent`, {
       method: "POST",
-      body: JSON.stringify(body),
+      body,
     }),
   unassignAgent: (vehicleId: string) =>
     request(`vehicles/${vehicleId}/unassign-agent`, {
@@ -219,7 +227,15 @@ export const subscriptionsApi = {
 
 // ── Upload
 export const uploadApi = {
-  upload: (body: unknown) => request("upload", { method: "POST", body }),
+  uploadDeliveryProof: (shipmentId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return request(`upload/delivery-proof/${shipmentId}`, {
+      method: "POST",
+      body: formData,
+    });
+  },
 };
 
 export const agentsApi = {
