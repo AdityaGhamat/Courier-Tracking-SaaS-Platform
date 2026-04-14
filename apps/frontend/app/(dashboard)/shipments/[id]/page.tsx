@@ -23,13 +23,15 @@ import {
 } from "@/components/shipments/update-status-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { Shipment } from "@/types/shipment.types";
+import { OptimizedRoutePanel } from "@/components/shipments/optimized-route-panel";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+// Fixed Interface Shape
 interface ShipmentResponse {
-  data: { shipment: Shipment };
+  data: Shipment;
 }
 
 function InfoRow({
@@ -49,7 +51,9 @@ function InfoRow({
         {Icon && <Icon size={10} />}
         {label}
       </dt>
+      {/* 👇 Add suppressHydrationWarning here 👇 */}
       <dd
+        suppressHydrationWarning
         className={`text-sm font-medium text-foreground break-words ${
           mono ? "font-mono" : ""
         }`}
@@ -111,7 +115,8 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
 
   try {
     const res = await serverFetch<ShipmentResponse>(`shipments/${id}`);
-    shipment = res.data?.shipment ?? null;
+    // Fixed Data Extraction
+    shipment = res.data ?? null;
   } catch (err: any) {
     errorMsg = err?.message || "Failed to load shipment.";
     if (err?.statusCode === 404) notFound();
@@ -269,6 +274,7 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
               icon={Weight}
               value={shipment.weight ? `${shipment.weight} kg` : null}
             />
+            {/* Added timeZone to fix hydration errors */}
             <InfoRow
               label="Estimated Delivery"
               icon={Calendar}
@@ -276,7 +282,11 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
                 shipment.estimatedDelivery
                   ? new Date(shipment.estimatedDelivery).toLocaleString(
                       "en-IN",
-                      { dateStyle: "medium", timeStyle: "short" },
+                      {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                        timeZone: "Asia/Kolkata",
+                      },
                     )
                   : null
               }
@@ -286,6 +296,7 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
               value={new Date(shipment.createdAt).toLocaleString("en-IN", {
                 dateStyle: "medium",
                 timeStyle: "short",
+                timeZone: "Asia/Kolkata",
               })}
             />
             <InfoRow
@@ -293,6 +304,7 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
               value={new Date(shipment.updatedAt).toLocaleString("en-IN", {
                 dateStyle: "medium",
                 timeStyle: "short",
+                timeZone: "Asia/Kolkata",
               })}
             />
           </dl>
@@ -316,9 +328,10 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
       <SectionCard title="QR Code" icon={QrCode}>
         <div className="flex items-center gap-5 flex-wrap">
           <div className="bg-background p-2.5 rounded-xl border border-border shadow-sm w-fit">
+            {/* Added /download to the src URL */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`/api/proxy/qrcode/${shipment.id}`}
+              src={`/api/proxy/qrcode/${shipment.id}/download`}
               alt={`QR code for ${shipment.trackingNumber}`}
               width={140}
               height={140}
@@ -350,6 +363,12 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
             className="max-w-[400px] w-full h-auto rounded-xl border border-border shadow-sm"
           />
         </SectionCard>
+      )}
+
+      {/* ── Route Optimization (Advanced Enhancement #2) ── */}
+      {/* Visible to admin when agent is assigned, and always to the assigned agent */}
+      {shipment.driver?.id && (isAdmin || isAssignedToMe) && (
+        <OptimizedRoutePanel agentId={shipment.driver.id} />
       )}
 
       {/* Timeline */}

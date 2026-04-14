@@ -47,6 +47,44 @@ async function handler(
     );
   }
 
+  // ✅ Forward Set-Cookie from Express → browser
+  const rawHeaders = backendRes.headers as unknown as {
+    getSetCookie?: () => string[];
+  };
+  const allSetCookies =
+    typeof rawHeaders.getSetCookie === "function"
+      ? rawHeaders.getSetCookie()
+      : backendRes.headers.get("set-cookie")
+        ? [backendRes.headers.get("set-cookie")!]
+        : [];
+
+  const contentType = backendRes.headers.get("content-type") || "";
+
+  // ✅ FIX: If the backend returns an image (or file), pass the raw binary buffer directly
+  if (
+    contentType.includes("image/") ||
+    contentType.includes("application/octet-stream")
+  ) {
+    const arrayBuffer = await backendRes.arrayBuffer();
+
+    const headers = new Headers();
+    headers.set("Content-Type", contentType);
+
+    const disposition = backendRes.headers.get("content-disposition");
+    if (disposition) {
+      headers.set("Content-Disposition", disposition);
+    }
+
+    const nextRes = new NextResponse(arrayBuffer, {
+      status: backendRes.status,
+      headers,
+    });
+
+    allSetCookies.forEach((c) => nextRes.headers.append("set-cookie", c));
+    return nextRes;
+  }
+
+  // ✅ Standard JSON handling for regular API endpoints
   const responseText = await backendRes.text();
   let responseData: unknown;
   try {
@@ -58,18 +96,6 @@ async function handler(
   const nextRes = NextResponse.json(responseData, {
     status: backendRes.status,
   });
-
-  // ✅ Forward Set-Cookie from Express → browser
-  // This is what plants session_key + refresh_key after login
-  const rawHeaders = backendRes.headers as unknown as {
-    getSetCookie?: () => string[];
-  };
-  const allSetCookies =
-    typeof rawHeaders.getSetCookie === "function"
-      ? rawHeaders.getSetCookie()
-      : backendRes.headers.get("set-cookie")
-        ? [backendRes.headers.get("set-cookie")!]
-        : [];
 
   allSetCookies.forEach((c) => {
     nextRes.headers.append("set-cookie", c);
