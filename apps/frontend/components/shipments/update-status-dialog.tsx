@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { MapPin, FileText } from "lucide-react";
 import { shipmentsApi } from "@/lib/api";
 import {
@@ -39,13 +38,17 @@ const STATUS_OPTIONS: { label: string; value: ShipmentStatus }[] = [
 interface Props {
   shipmentId: string;
   currentStatus: ShipmentStatus;
+  onDone?: () => void; // ← ADDED
 }
 
-export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
-  const router = useRouter();
+export function UpdateStatusDialog({
+  shipmentId,
+  currentStatus,
+  onDone,
+}: Props) {
+  // ← REMOVED useRouter
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<ShipmentStatus>(currentStatus);
-  // FIX: add location + description — both required by backend
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -80,8 +83,8 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
         location: location.trim(),
         description: description.trim(),
       });
-      setOpen(false);
-      router.refresh();
+      handleOpenChange(false);
+      onDone?.(); // ← calls router.refresh() from parent ShipmentActions
     } catch (err: any) {
       setError(err?.message ?? "Failed to update status");
     } finally {
@@ -124,7 +127,7 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
             </Select>
           </div>
 
-          {/* Location — required by backend */}
+          {/* Location */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
               <MapPin size={11} /> Current Location{" "}
@@ -139,7 +142,7 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
             />
           </div>
 
-          {/* Description — required by backend */}
+          {/* Description */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
               <FileText size={11} /> Description{" "}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { serverFetch } from "@/lib/server-api";
 import { CreateShipmentDialog } from "@/components/shipments/create-shipment-dialog";
+import { ShipmentActions } from "@/components/shipments/shipment-actions";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Table,
@@ -99,7 +100,7 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* Table boundary wrapper */}
+      {/* Table */}
       <div className="bg-card rounded-lg border border-border w-full overflow-hidden flex flex-col">
         {shipments.length === 0 && !fetchError ? (
           <div className="p-16 text-center text-muted-foreground w-full">
@@ -122,7 +123,7 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
           </div>
         ) : (
           <div className="w-full overflow-x-auto">
-            <Table className="w-full min-w-[800px]">
+            <Table className="w-full min-w-[900px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Tracking #</TableHead>
@@ -131,7 +132,8 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
                   <TableHead>Status</TableHead>
                   <TableHead>Weight</TableHead>
                   <TableHead>Created</TableHead>
-                  <TableHead />
+                  <TableHead>View</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -151,7 +153,7 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground max-w-[200px] block overflow-hidden text-ellipsis whitespace-nowrap">
+                      <span className="text-sm text-muted-foreground max-w-[180px] block overflow-hidden text-ellipsis whitespace-nowrap">
                         {s.recipientAddress}
                       </span>
                     </TableCell>
@@ -175,6 +177,14 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
                       >
                         View →
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      {/* ← NEW: assign agent + update status buttons */}
+                      <ShipmentActions
+                        shipmentId={s.id}
+                        currentStatus={s.status}
+                        currentAgentId={(s as any).agentId ?? null}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { shipmentsApi } from "@/lib/api";
 import {
   Dialog,
@@ -14,12 +13,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function AssignAgentDialog({ shipmentId }: { shipmentId: string }) {
-  const router = useRouter();
+interface Props {
+  shipmentId: string;
+  currentAgentId?: string | null; // ← ADDED
+  onDone?: () => void; // ← ADDED
+}
+
+export function AssignAgentDialog({
+  shipmentId,
+  currentAgentId,
+  onDone,
+}: Props) {
   const [open, setOpen] = useState(false);
-  const [agentId, setAgentId] = useState("");
+  const [agentId, setAgentId] = useState(currentAgentId ?? ""); // ← pre-fill if already assigned
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setAgentId(currentAgentId ?? "");
+      setError(null);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,9 +44,8 @@ export function AssignAgentDialog({ shipmentId }: { shipmentId: string }) {
     setError(null);
     try {
       await shipmentsApi.assignAgent(shipmentId, { agentId: agentId.trim() });
-      setOpen(false);
-      setAgentId("");
-      router.refresh();
+      handleOpenChange(false);
+      onDone?.(); // ← calls router.refresh() from ShipmentActions
     } catch (err: any) {
       setError(err?.message ?? "Failed to assign agent");
     } finally {
@@ -39,7 +54,7 @@ export function AssignAgentDialog({ shipmentId }: { shipmentId: string }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline">Assign Agent</Button>
       </DialogTrigger>
@@ -58,12 +73,16 @@ export function AssignAgentDialog({ shipmentId }: { shipmentId: string }) {
               required
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md border border-destructive/20">
+              {error}
+            </p>
+          )}
           <div className="flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => handleOpenChange(false)}
             >
               Cancel
             </Button>
@@ -74,7 +93,7 @@ export function AssignAgentDialog({ shipmentId }: { shipmentId: string }) {
                 backgroundColor: "#fd761a",
                 color: "white",
                 border: "none",
-              }} // FORCED ORANGE
+              }}
             >
               {loading ? "Assigning…" : "Assign"}
             </Button>
