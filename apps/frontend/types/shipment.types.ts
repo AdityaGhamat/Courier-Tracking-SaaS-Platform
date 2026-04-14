@@ -7,20 +7,19 @@ export type ShipmentStatus =
   | "delivered"
   | "failed"
   | "retry"
-  | "returned"
-  | "exception";
+  | "returned";
 
-export interface TrackingEvent {
+export interface ShipmentEvent {
   id: string;
   parcelId: string;
   status: ShipmentStatus;
-  location: string;
-  description: string;
-  agentId: string | null;
+  agentId?: string;
+  location?: string;
+  description?: string;
   timestamp: string;
 }
 
-export interface ShipmentUser {
+export interface ShipmentAgent {
   id: string;
   name: string;
   email: string;
@@ -29,47 +28,21 @@ export interface ShipmentUser {
 export interface Shipment {
   id: string;
   trackingNumber: string;
-  workspaceId: string;
-  senderId: string;
-  driverId: string | null;
-  recipientName: string;
-  recipientAddress: string;
-  recipientPhone: string | null;
-  recipientEmail: string | null;
-  weight: string | null;
   status: ShipmentStatus;
-  estimatedDelivery: string | null;
-  deliveryProofUrl: string | null;
-  hubId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  sender?: ShipmentUser;
-  driver?: ShipmentUser | null;
-  events?: TrackingEvent[];
-}
-
-export interface ListShipmentsQuery {
-  page?: number;
-  limit?: number;
-  status?: ShipmentStatus;
-}
-
-export interface CreateShipmentInput {
+  senderId: string;
   recipientName: string;
   recipientAddress: string;
   recipientPhone?: string;
   recipientEmail?: string;
-  weight?: string;
-  estimatedDelivery?: string;
+  weight?: number;
+  driverId?: string;
+  driver?: ShipmentAgent;
+  sender?: ShipmentAgent;
   hubId?: string;
-}
-
-export interface UpdateShipmentStatusInput {
-  status: ShipmentStatus;
-  location: string;
-  description: string;
-}
-
-export interface AssignAgentInput {
-  agentId: string;
+  workspaceId: string;
+  estimatedDelivery?: string;
+  deliveryProofUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  events?: ShipmentEvent[];
 }

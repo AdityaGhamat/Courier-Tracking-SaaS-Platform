@@ -11,18 +11,23 @@ import {
   MapPin,
   Calendar,
   Weight,
+  Truck,
 } from "lucide-react";
 import { serverFetch } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/session";
 import { ShipmentTimeline } from "@/components/shipments/shipment-timeline";
 import { AssignAgentDialog } from "@/components/shipments/assign-agent-dialog";
-import { UpdateStatusDialog } from "@/components/shipments/update-status-dialog";
+import {
+  UpdateStatusDialog,
+  AGENT_ALLOWED_STATUSES,
+} from "@/components/shipments/update-status-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { Shipment } from "@/types/shipment.types";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
+
 interface ShipmentResponse {
   data: { shipment: Shipment };
 }
@@ -91,10 +96,15 @@ function SectionCard({
   );
 }
 
+const TERMINAL_STATUSES = ["delivered", "returned"] as const;
+type TerminalStatus = (typeof TERMINAL_STATUSES)[number];
+
 export default async function ShipmentDetailPage({ params }: PageProps) {
   const { id } = await params;
   const user = await getSessionUser();
+
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const isAgent = user?.role === "delivery_agent";
 
   let shipment: Shipment | null = null;
   let errorMsg: string | null = null;
@@ -107,6 +117,7 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
     if (err?.statusCode === 404) notFound();
   }
 
+  // ── Error / not-found state ──────────────────────────────────────────────────
   if (errorMsg || !shipment) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] p-6">
@@ -147,9 +158,15 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
     );
   }
 
+  // Agent context flags
+  const isAssignedToMe = isAgent && shipment.driver?.id === user?.id;
+  const isTerminal = TERMINAL_STATUSES.includes(
+    shipment.status as TerminalStatus,
+  );
+
   return (
     <div className="flex flex-col gap-5 w-full min-w-0 max-w-4xl mx-auto pb-8">
-      {/* ── Back ─────────────────────────────────────────────── */}
+      {/* Back */}
       <Link
         href="/shipments"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors no-underline w-fit"
@@ -158,7 +175,7 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
         Back to Shipments
       </Link>
 
-      {/* ── Page Header ──────────────────────────────────────── */}
+      {/* Page header */}
       <div className="flex items-start justify-between flex-wrap gap-3 w-full">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3 flex-wrap">
@@ -171,6 +188,8 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
             {shipment.trackingNumber}
           </p>
         </div>
+
+        {/* Admin actions */}
         {isAdmin && (
           <div className="flex gap-2 flex-wrap shrink-0">
             <AssignAgentDialog shipmentId={shipment.id} />
@@ -180,9 +199,42 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
             />
           </div>
         )}
+
+        {/* Agent action — scoped status list, non-terminal only */}
+        {isAgent && isAssignedToMe && !isTerminal && (
+          <div className="shrink-0">
+            <UpdateStatusDialog
+              shipmentId={shipment.id}
+              currentStatus={shipment.status}
+              allowedStatuses={AGENT_ALLOWED_STATUSES}
+            />
+          </div>
+        )}
       </div>
 
-      {/* ── Assigned Agent Banner ─────────────────────────────── */}
+      {/* Agent context banners */}
+      {isAgent && !isAssignedToMe && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-3.5">
+          <Truck size={16} className="text-amber-600 shrink-0" />
+          <p className="text-sm text-amber-800 font-medium">
+            This shipment is not currently assigned to you — status updates are
+            disabled.
+          </p>
+        </div>
+      )}
+
+      {isAgent && isAssignedToMe && isTerminal && (
+        <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-5 py-3.5">
+          <UserCheck size={16} className="text-green-600 shrink-0" />
+          <p className="text-sm text-green-800 font-medium">
+            This shipment has been{" "}
+            <span className="font-bold">{shipment.status}</span> — no further
+            updates are needed.
+          </p>
+        </div>
+      )}
+
+      {/* Assigned agent banner */}
       {shipment.driver && (
         <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-5 py-3.5">
           <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0 text-primary-foreground font-bold text-sm">
@@ -203,7 +255,7 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* ── Info Cards ───────────────────────────────────────── */}
+      {/* Info cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <SectionCard title="Shipment Info" icon={Package}>
           <dl className="flex flex-col gap-4">
@@ -255,12 +307,12 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
               value={shipment.recipientAddress}
             />
             <InfoRow label="Phone" value={shipment.recipientPhone} />
-            <InfoRow label="Email" value={shipment.recipientEmail} />
+            <InfoRow label="Email" value={(shipment as any).recipientEmail} />
           </dl>
         </SectionCard>
       </div>
 
-      {/* ── QR Code ──────────────────────────────────────────── */}
+      {/* QR Code */}
       <SectionCard title="QR Code" icon={QrCode}>
         <div className="flex items-center gap-5 flex-wrap">
           <div className="bg-background p-2.5 rounded-xl border border-border shadow-sm w-fit">
@@ -287,12 +339,12 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
         </div>
       </SectionCard>
 
-      {/* ── Proof of Delivery ────────────────────────────────── */}
-      {shipment.deliveryProofUrl && (
+      {/* Proof of delivery */}
+      {(shipment as any).deliveryProofUrl && (
         <SectionCard title="Proof of Delivery" icon={Package}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={shipment.deliveryProofUrl}
+            src={(shipment as any).deliveryProofUrl}
             alt="Proof of delivery"
             loading="lazy"
             className="max-w-[400px] w-full h-auto rounded-xl border border-border shadow-sm"
@@ -300,7 +352,7 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
         </SectionCard>
       )}
 
-      {/* ── Timeline ─────────────────────────────────────────── */}
+      {/* Timeline */}
       <SectionCard title="Tracking History" icon={Clock}>
         <ShipmentTimeline events={shipment.events ?? []} />
       </SectionCard>
