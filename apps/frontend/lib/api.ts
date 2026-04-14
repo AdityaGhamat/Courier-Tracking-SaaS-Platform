@@ -174,7 +174,7 @@ export const hubsApi = {
   assignShipment: (shipmentId: string, hubId: string) =>
     request(`hubs/shipments/${shipmentId}/assign`, {
       method: "POST",
-      body: { hubId },
+      body: JSON.stringify({ hubId }),
     }),
   getShipments: (hubId: string) => request(`hubs/${hubId}/shipments`),
 };
@@ -186,10 +186,15 @@ export const vehiclesApi = {
   update: (id: string, body: unknown) =>
     request(`vehicles/${id}`, { method: "PUT", body }),
   delete: (id: string) => request(`vehicles/${id}`, { method: "DELETE" }),
-  assignAgent: (id: string, body: { agentId: string }) =>
-    request(`vehicles/${id}/assign-agent`, { method: "PATCH", body }),
-  unassignAgent: (id: string) =>
-    request(`vehicles/${id}/unassign-agent`, { method: "DELETE" }),
+  assignAgent: (vehicleId: string, body: { agentId: string }) =>
+    request(`vehicles/${vehicleId}/assign-agent`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  unassignAgent: (vehicleId: string) =>
+    request(`vehicles/${vehicleId}/unassign-agent`, {
+      method: "DELETE",
+    }),
   getMyVehicle: () => request("vehicles/my"),
 };
 

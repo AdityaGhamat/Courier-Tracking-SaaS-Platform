@@ -3,6 +3,7 @@ import type { Hub } from "@/types";
 import { CreateHubDialog } from "@/components/hubs/create-hub-dialog";
 import { EditHubDialog } from "@/components/hubs/edit-hub-dialog";
 import { HubShipmentsButton } from "@/components/hubs/hub-shipments-button";
+import { AssignShipmentHubDialog } from "@/components/hubs/assign-shipment-hub-dialog";
 
 async function getHubs(): Promise<Hub[]> {
   try {
@@ -97,10 +98,12 @@ export default async function HubsPage() {
               )}
 
               {/* Actions row */}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                {/* View shipments — client component */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
                 <HubShipmentsButton hubId={hub.id} hubName={hub.name} />
-                <EditHubDialog hub={hub} />
+                <div className="flex items-center gap-2">
+                  <AssignShipmentHubDialog hubId={hub.id} hubName={hub.name} />
+                  <EditHubDialog hub={hub} />
+                </div>
               </div>
             </div>
           ))}
