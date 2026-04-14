@@ -64,14 +64,7 @@ const StatusIcon = ({ status }: { status: ShipmentStatus }) => {
         </svg>
       );
     case "failed":
-    case "exception":
-      return (
-        <svg {...p}>
-          <circle cx="12" cy="12" r="10" />
-          <line x1="15" y1="9" x2="9" y2="15" />
-          <line x1="9" y1="9" x2="15" y2="15" />
-        </svg>
-      );
+
     case "retry":
       return (
         <svg {...p}>
@@ -105,7 +98,6 @@ const EVENT_META: Record<ShipmentStatus, string> = {
   failed: "text-red-600 border-red-200 bg-red-50",
   retry: "text-yellow-600 border-yellow-200 bg-yellow-50",
   returned: "text-yellow-600 border-yellow-200 bg-yellow-50",
-  exception: "text-red-600 border-red-200 bg-red-50",
 };
 
 const STATUS_LABELS: Record<ShipmentStatus, string> = {
@@ -118,7 +110,6 @@ const STATUS_LABELS: Record<ShipmentStatus, string> = {
   failed: "Failed",
   retry: "Retry Scheduled",
   returned: "Returned",
-  exception: "Exception",
 };
 
 export function TrackingHistory({

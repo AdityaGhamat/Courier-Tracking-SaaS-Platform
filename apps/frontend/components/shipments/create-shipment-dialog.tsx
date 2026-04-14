@@ -23,9 +23,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { CreateShipmentInput } from "@/types/shipment.types";
 
-const EMPTY_FORM: CreateShipmentInput = {
+const EMPTY_FORM: any = {
   recipientName: "",
   recipientAddress: "",
   recipientPhone: "",
@@ -63,7 +62,7 @@ export function CreateShipmentDialog() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<CreateShipmentInput>(EMPTY_FORM);
+  const [form, setForm] = useState<any>(EMPTY_FORM);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -82,7 +81,7 @@ export function CreateShipmentDialog() {
     setLoading(true);
     setError(null);
 
-    const payload: CreateShipmentInput = {
+    const payload: any = {
       recipientName: form.recipientName,
       recipientAddress: form.recipientAddress,
       ...(form.recipientPhone && { recipientPhone: form.recipientPhone }),

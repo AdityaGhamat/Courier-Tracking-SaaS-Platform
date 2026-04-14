@@ -19,12 +19,7 @@ const PROGRESS_STEPS: {
   { status: "delivered", label: "Delivered", short: "Done" },
 ];
 
-const TERMINAL_STATUSES: ShipmentStatus[] = [
-  "failed",
-  "returned",
-  "retry",
-  "exception",
-];
+const TERMINAL_STATUSES: ShipmentStatus[] = ["failed", "returned", "retry"];
 
 const TERMINAL_META: Record<
   string,

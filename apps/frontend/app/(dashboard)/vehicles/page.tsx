@@ -12,7 +12,6 @@ interface VehicleWithDriver extends Vehicle {
   driver?: { id: string; name: string; email: string } | null;
 }
 
-// getMyVehicle returns the raw vehicle row (no nested driver)
 interface MyVehicleResponse {
   data: Vehicle;
 }

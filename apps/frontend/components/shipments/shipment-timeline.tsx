@@ -1,6 +1,6 @@
 "use client";
 
-import type { TrackingEvent, ShipmentStatus } from "@/types/shipment.types";
+import type { ShipmentStatus } from "@/types/shipment.types";
 
 const StatusIcon = ({ status }: { status: ShipmentStatus }) => {
   const p = {
@@ -82,14 +82,7 @@ const StatusIcon = ({ status }: { status: ShipmentStatus }) => {
           <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
         </svg>
       );
-    case "exception":
-      return (
-        <svg {...p}>
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
-      );
+
     default:
       return (
         <svg {...p}>
@@ -141,15 +134,10 @@ const STATUS_META: Record<
     text: "text-amber-600",
     border: "border-amber-500",
   },
-  exception: {
-    label: "Exception",
-    text: "text-red-600",
-    border: "border-red-500",
-  },
 };
 
 interface Props {
-  events: TrackingEvent[];
+  events: any[];
 }
 
 export function ShipmentTimeline({ events }: Props) {

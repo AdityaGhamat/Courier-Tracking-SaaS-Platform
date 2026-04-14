@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, AlertTriangle } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { superAdminApi } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -41,53 +43,41 @@ export function DeleteTenantButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors border border-red-100">
+        <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-destructive bg-destructive/10 hover:bg-destructive/20 transition-colors border border-destructive/20">
           <Trash2 size={11} /> Delete
         </button>
       </DialogTrigger>
-      <DialogContent className="p-0 overflow-hidden sm:max-w-[400px] gap-0 rounded-xl border-slate-200">
-        <div
-          className="px-6 py-5 flex items-center gap-3"
-          style={{ background: "linear-gradient(135deg,#7f1d1d,#991b1b)" }}
-        >
-          <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-            <AlertTriangle size={18} className="text-red-300" />
-          </div>
-          <div>
-            <DialogTitle className="text-white font-bold text-base leading-tight m-0 p-0">
-              Delete Tenant
-            </DialogTitle>
-            <p className="text-red-300 text-xs mt-0.5 truncate max-w-[220px]">
-              {tenantName}
-            </p>
-          </div>
-        </div>
+      <DialogContent className="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>Delete Tenant</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete{" "}
+            <span className="font-bold text-foreground">{tenantName}</span>?
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="px-6 py-5 flex flex-col gap-4">
-          <p className="text-sm text-slate-700">
+        <div className="flex flex-col gap-4 mt-2">
+          <p className="text-sm text-muted-foreground">
             This will permanently delete the tenant workspace and all associated
             data. This action{" "}
-            <span className="font-bold text-red-600">cannot be undone</span>.
+            <span className="font-bold text-destructive">cannot be undone</span>
+            .
           </p>
           {error && (
-            <div className="px-4 py-2.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+            <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md border border-destructive/20">
               {error}
-            </div>
+            </p>
           )}
         </div>
 
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            className="border-slate-200 text-slate-600 text-sm"
-          >
+        <div className="flex justify-end gap-3 mt-4">
+          <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
           <Button
+            variant="destructive"
             onClick={handleDelete}
             disabled={loading}
-            className="bg-red-600 hover:bg-red-700 text-white font-semibold text-sm border-none"
           >
             {loading ? "Deleting…" : "Yes, Delete Tenant"}
           </Button>

@@ -68,6 +68,9 @@ export interface Vehicle {
   type: string;
   agentId?: string;
   workspaceId: string;
+  capacityKg?: number | null; // used in capacity display
+  isAvailable: boolean; // used in availability badge
+  createdAt: string; // used in "Registered" row (AgentVehicleCard)
 }
 
 export interface ApiError {
