@@ -1,159 +1,313 @@
-# Turborepo starter
+# 🚚 Courier Tracking SaaS Platform
 
-This Turborepo starter is maintained by the Turborepo core team.
+A full-stack, multi-tenant SaaS platform for courier and shipment management. Built with a **Turborepo monorepo** structure, it enables workspace admins to manage fleets, agents, shipments, and real-time tracking — while delivery agents get a focused view of their assigned vehicle and routes.
 
-## Using this example
+---
 
-Run the following command:
+## ✨ Features
 
-```sh
-npx create-turbo@latest
+- 🏢 **Multi-tenant workspaces** — each business operates in its own isolated workspace
+- 👥 **Role-based access** — `super_admin`, `admin`, and `delivery_agent` roles with separate views
+- 📦 **Shipment lifecycle management** — create, assign, track, and complete shipments
+- 🚗 **Fleet management** — register vehicles (bike, car, van, truck, auto) and assign to agents
+- 📍 **Real-time tracking** — live location updates via Redis pub/sub
+- 🔔 **Email notifications** — powered by [Resend](https://resend.com)
+- 📸 **File uploads** — proof-of-delivery image uploads via Cloudflare R2
+- 🔐 **Secure auth** — JWT access + refresh tokens with HTTP-only cookies
+- 📊 **Analytics module** — workspace-level delivery analytics
+- 🧾 **QR Code generation** — per-shipment QR codes for quick scanning
+- 💳 **Subscription module** — tiered workspace subscription support
+- 🚦 **Rate limiting** — Redis-backed rate limiting per IP
+- 📖 **Swagger docs** — auto-generated API documentation
+
+---
+
+## 🗂 Monorepo Structure
+
+.
+├── apps/
+│ ├── backend/ # Express.js REST API (Node.js + TypeScript)
+│ ├── frontend/ # Next.js 16 web dashboard (React 19 + Tailwind v4)
+│ └── docker-compose.yml
+├── packages/
+│ ├── ui/ # Shared shadcn/ui component library (@repo/ui)
+│ ├── eslint-config/ # Shared ESLint config (@repo/eslint-config)
+│ └── typescript-config/ # Shared tsconfig (@repo/typescript-config)
+├── turbo.json
+└── package.json
+
+text
+
+---
+
+## 🛠 Tech Stack
+
+| Layer            | Technology                                                       |
+| ---------------- | ---------------------------------------------------------------- |
+| Frontend         | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui, TanStack Query |
+| Backend          | Express.js 5, TypeScript, Drizzle ORM                            |
+| Database         | PostgreSQL via [Neon](https://neon.tech) (serverless)            |
+| Cache / Queue    | Redis (ioredis) + BullMQ                                         |
+| Storage          | Cloudflare R2 (AWS S3-compatible)                                |
+| Email            | Resend                                                           |
+| Auth             | JWT (access + refresh), bcryptjs, HTTP-only cookies              |
+| Validation       | Zod                                                              |
+| API Docs         | Swagger (swagger-jsdoc + swagger-ui-express)                     |
+| Monorepo         | Turborepo                                                        |
+| Containerization | Docker + Docker Compose                                          |
+
+---
+
+## 📋 Prerequisites
+
+Make sure you have the following installed before getting started:
+
+- **Node.js** v20+ — [Download](https://nodejs.org)
+- **npm** v10+ (comes with Node.js)
+- **Docker & Docker Compose** — [Download](https://www.docker.com/products/docker-desktop)
+- **Git**
+
+You will also need accounts/API keys for:
+
+- [Neon](https://neon.tech) — PostgreSQL database (free tier available) / [Supabase](https://supabase.com) — PostgreSQL database (free tier available)
+- [Resend](https://resend.com) — Transactional email (free tier available)
+- [Cloudflare R2](https://developers.cloudflare.com/r2/) — Object storage for file uploads
+
+---
+
+## ⚡ Quick Start
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/AdityaGhamat/Courier-Tracking-SaaS-Platform.git
+cd Courier-Tracking-SaaS-Platform
 ```
 
-## What's inside?
+### 2. Install dependencies
 
-This Turborepo includes the following packages/apps:
+From the **root** of the monorepo:
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```bash
+npm install
 ```
 
-Without global `turbo`, use your package manager:
+---
 
-```sh
-cd my-turborepo
-npx turbo build
-npm dlx turbo build
-npm exec turbo build
+## 🔧 Environment Variables
+
+### Backend (`apps/backend/.env`)
+
+Copy the example file and fill in your values:
+
+```bash
+cp apps/backend/.env.example apps/backend/.env
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+| Variable                | Description                                          |
+| ----------------------- | ---------------------------------------------------- |
+| `PORT`                  | Backend server port (default: `3005`)                |
+| `DATABASE_URL`          | Neon PostgreSQL connection string                    |
+| `JWT_SECRET`            | Secret for JWT signing                               |
+| `COOKIE_SECRET_KEY`     | Secret for access token cookie signing               |
+| `COOKIE_REFRESH_SECRET` | Secret for refresh token cookie signing              |
+| `RESEND_API_KEY`        | Resend API key for sending emails                    |
+| `FROM_EMAIL`            | Sender email address (must be verified in Resend)    |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID                           |
+| `R2_ACCESS_KEY_ID`      | R2 access key                                        |
+| `R2_SECRET_ACCESS_KEY`  | R2 secret key                                        |
+| `R2_BUCKET_NAME`        | R2 bucket name                                       |
+| `R2_TOKEN`              | R2 API token                                         |
+| `R2_PUBLIC_URL`         | Public URL of your R2 bucket                         |
+| `R2_ENDPOINT`           | R2 S3-compatible endpoint URL                        |
+| `REDIS_URL`             | Redis connection URL (e.g. `redis://localhost:6379`) |
+| `REDIS_TLS`             | Set to `true` if using TLS (e.g. Upstash)            |
+| `TRACKING_BASE_URL`     | Base URL for public tracking links                   |
+| `API_URL`               | Backend API URL (used internally)                    |
+| `FRONTEND_URL`          | Frontend URL for CORS configuration                  |
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+### Frontend (`apps/frontend/.env.local`)
 
-```sh
-turbo build --filter=docs
+Create a `.env.local` file inside `apps/frontend/`:
+
+```bash
+# apps/frontend/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:3005/api
 ```
 
-Without global `turbo`:
+---
 
-```sh
-npx turbo build --filter=docs
-npm exec turbo build --filter=docs
-npm exec turbo build --filter=docs
+## 🗄 Database Setup
+
+This project uses **Neon PostgreSQL** with **Drizzle ORM**. After setting your `DATABASE_URL`:
+
+```bash
+cd apps/backend
+
+# Generate migration files from schema
+npm run db:generate
+
+# Push schema to your Neon database
+npm run db:push
+
+# (Optional) Open Drizzle Studio to inspect your DB
+npm run db:studio
 ```
 
-### Develop
+---
 
-To develop all apps and packages, run the following command:
+## 🐳 Running with Docker (Recommended)
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+The `docker-compose.yml` spins up **Redis** and the **backend** together. Make sure your `apps/backend/.env` is filled in first.
 
-```sh
-cd my-turborepo
+```bash
+cd apps
+docker-compose up -d
+```
+
+This starts:
+
+- `courier-redis` — Redis on port `6379`
+- `courier-backend` — Express API on port `3005`
+
+To stop:
+
+```bash
+docker-compose down
+```
+
+---
+
+## 🏃 Running Without Docker
+
+### Start Redis locally
+
+```bash
+redis-server
+```
+
+Or use a managed Redis like [Upstash](https://upstash.com) and set `REDIS_URL` + `REDIS_TLS=true`.
+
+### Start the Backend
+
+```bash
+cd apps/backend
+npm run dev
+```
+
+- API: `http://localhost:3005`
+- Swagger Docs: `http://localhost:3005/api-docs`
+
+### Start the Frontend
+
+```bash
+cd apps/frontend
+npm run dev
+```
+
+- Dashboard: `http://localhost:3003`
+
+---
+
+## 🚀 Running the Full Monorepo
+
+From the **root**, use Turborepo to run everything at once:
+
+```bash
+npm run dev
+# or with global turbo:
 turbo dev
 ```
 
-Without global `turbo`, use your package manager:
+---
 
-```sh
-cd my-turborepo
-npx turbo dev
-npm exec turbo dev
-npm exec turbo dev
-```
+## 📜 Available Scripts
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### Backend (`apps/backend`)
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+| Script                | Description                                 |
+| --------------------- | ------------------------------------------- |
+| `npm run dev`         | Start backend with hot reload (ts-node-dev) |
+| `npm run build`       | Compile TypeScript to `dist/`               |
+| `npm run start`       | Run compiled production build               |
+| `npm run db:generate` | Generate Drizzle migration files            |
+| `npm run db:push`     | Push schema changes to database             |
+| `npm run db:studio`   | Open Drizzle Studio in browser              |
 
-```sh
-turbo dev --filter=web
-```
+### Frontend (`apps/frontend`)
 
-Without global `turbo`:
+| Script                | Description                           |
+| --------------------- | ------------------------------------- |
+| `npm run dev`         | Start Next.js dev server on port 3003 |
+| `npm run build`       | Build for production                  |
+| `npm run start`       | Start production server on port 3003  |
+| `npm run lint`        | Run ESLint                            |
+| `npm run check-types` | TypeScript type check                 |
 
-```sh
-npx turbo dev --filter=web
-npm exec turbo dev --filter=web
-npm exec turbo dev --filter=web
-```
+---
 
-### Remote Caching
+## 🔌 API Modules
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+| Module         | Description                                |
+| -------------- | ------------------------------------------ |
+| `auth`         | Registration, login, logout, token refresh |
+| `core`         | Workspace & user management                |
+| `shipment`     | Shipment CRUD, assignment, status updates  |
+| `tracking`     | Real-time location tracking via Redis      |
+| `vehicle`      | Fleet registration and agent assignment    |
+| `hub`          | Delivery hub management                    |
+| `notification` | Email notifications via Resend             |
+| `upload`       | File upload to Cloudflare R2               |
+| `qrcode`       | QR code generation per shipment            |
+| `analytics`    | Workspace delivery analytics               |
+| `payment`      | Payment processing module                  |
+| `subscription` | Workspace subscription tiers               |
+| `superAdmin`   | Platform-level admin controls              |
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+---
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+## 👤 User Roles
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+| Role             | Access                                                        |
+| ---------------- | ------------------------------------------------------------- |
+| `super_admin`    | Platform-wide access across all workspaces                    |
+| `admin`          | Full access within their workspace (fleet, agents, shipments) |
+| `delivery_agent` | Read-only access to assigned vehicle and deliveries           |
 
-```sh
-cd my-turborepo
-turbo login
-```
+---
 
-Without global `turbo`, use your package manager:
+## 📦 Shared Packages
 
-```sh
-cd my-turborepo
-npx turbo login
-npm exec turbo login
-npm exec turbo login
-```
+| Package                   | Description                                                    |
+| ------------------------- | -------------------------------------------------------------- |
+| `@repo/ui`                | Shared React component library built on shadcn/ui and Radix UI |
+| `@repo/eslint-config`     | Shared ESLint configuration for all apps                       |
+| `@repo/typescript-config` | Shared `tsconfig.json` base configurations                     |
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+---
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+## 🧪 Postman Collection
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+A Postman collection is included for API testing at `apps/backend/postman/`. Import it into Postman to test all API endpoints with pre-configured requests.
 
-```sh
-turbo link
-```
+---
 
-Without global `turbo`:
+## 🤝 Contributing
 
-```sh
-npx turbo link
-npm exec turbo link
-npm exec turbo link
-```
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feat/your-feature`
+3. Commit your changes: `git commit -m 'feat: add your feature'`
+4. Push to your branch: `git push origin feat/your-feature`
+5. Open a Pull Request
 
-## Useful Links
+---
 
-Learn more about the power of Turborepo:
+## 📄 License
 
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+This project is licensed under the **ISC License**.
+
+---
+
+## 👨‍💻 Author
+
+**Aditya Ghamat** — [GitHub](https://github.com/AdityaGhamat)
