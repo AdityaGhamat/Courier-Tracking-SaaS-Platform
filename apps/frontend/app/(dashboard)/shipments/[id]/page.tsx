@@ -1,5 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import {
+  ArrowLeft,
+  Package,
+  User,
+  Clock,
+  QrCode,
+  AlertTriangle,
+  UserCheck,
+} from "lucide-react";
 import { serverFetch } from "@/lib/server-api";
 import { ShipmentTimeline } from "@/components/shipments/shipment-timeline";
 import { AssignAgentDialog } from "@/components/shipments/assign-agent-dialog";
@@ -10,7 +19,6 @@ import type { Shipment } from "@/types/shipment.types";
 interface PageProps {
   params: Promise<{ id: string }>;
 }
-
 interface ShipmentResponse {
   data: { shipment: Shipment };
 }
@@ -26,14 +34,34 @@ function InfoRow({
 }) {
   return (
     <div className="flex flex-col gap-1 w-full overflow-hidden">
-      <dt className="text-xs text-muted-foreground uppercase tracking-wider font-medium truncate">
+      <dt className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
         {label}
       </dt>
       <dd
         className={`text-sm font-medium break-words ${mono ? "font-mono" : ""}`}
       >
-        {value}
+        {value ?? <span className="text-muted-foreground">—</span>}
       </dd>
+    </div>
+  );
+}
+
+function SectionCard({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-100 bg-slate-50">
+        <Icon size={15} className="text-indigo-500 shrink-0" />
+        <h2 className="text-sm font-semibold text-slate-700">{title}</h2>
+      </div>
+      <div className="p-5">{children}</div>
     </div>
   );
 }
@@ -53,39 +81,88 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
 
   if (errorMsg || !shipment) {
     return (
-      <div className="p-6 rounded-lg bg-destructive/10 text-destructive border border-destructive max-w-3xl mx-auto mt-8 text-center w-full">
-        <h2 className="text-lg font-bold mb-2">Failed to Load Shipment</h2>
-        <p className="text-sm mb-4 break-words">
-          {errorMsg || `Shipment ID "${id}" could not be found.`}
-        </p>
-        <Link
-          href="/shipments"
-          className="text-sm font-semibold underline text-destructive"
-        >
-          ← Return to Shipments
-        </Link>
+      <div className="flex items-center justify-center min-h-[60vh] p-6">
+        <div className="max-w-md w-full">
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            {/* Error header */}
+            <div
+              className="px-6 py-8 flex flex-col items-center text-center gap-4"
+              style={{ background: "linear-gradient(135deg,#1e1b4b,#312e81)" }}
+            >
+              <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center">
+                <AlertTriangle size={28} className="text-red-300" />
+              </div>
+              <div>
+                <h2 className="text-white font-bold text-lg">
+                  Shipment Not Found
+                </h2>
+                <p className="text-indigo-300 text-sm mt-1">
+                  {errorMsg
+                    ? "Backend connection error"
+                    : `ID: ${id.slice(0, 8)}…`}
+                </p>
+              </div>
+            </div>
+
+            {/* Error body */}
+            <div className="px-6 py-5 flex flex-col gap-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                <p className="text-sm text-red-600 font-medium">
+                  {errorMsg || `Shipment ID "${id}" could not be found.`}
+                </p>
+              </div>
+
+              <div className="space-y-2 text-sm text-slate-500">
+                <p className="font-medium text-slate-700">Possible reasons:</p>
+                <ul className="space-y-1 list-disc list-inside text-xs">
+                  <li>The shipment ID is incorrect or has been deleted</li>
+                  <li>The backend service is temporarily unavailable</li>
+                  <li>You may not have permission to view this shipment</li>
+                </ul>
+              </div>
+
+              <Link
+                href="/shipments"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-semibold text-sm text-white transition-opacity hover:opacity-90"
+                style={{
+                  background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
+                }}
+              >
+                <ArrowLeft size={14} />
+                Return to Shipments
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full min-w-0 max-w-4xl mx-auto">
+    <div className="flex flex-col gap-5 w-full min-w-0 max-w-4xl mx-auto pb-8">
       {/* Back + Header */}
-      <div className="w-full">
+      <div>
         <Link
           href="/shipments"
-          className="text-sm text-muted-foreground no-underline inline-flex items-center gap-1 hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 transition-colors no-underline"
         >
-          ← Back to Shipments
+          <ArrowLeft size={14} />
+          Back to Shipments
         </Link>
+
         <div className="flex items-start justify-between mt-4 flex-wrap gap-3 w-full">
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold truncate">Shipment Detail</h1>
-            <p className="text-sm text-muted-foreground mt-1 font-mono truncate">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl font-bold text-slate-900">
+                Shipment Detail
+              </h1>
+              <StatusBadge status={shipment.status} />
+            </div>
+            <p className="text-sm text-slate-500 mt-1 font-mono">
               {shipment.trackingNumber}
             </p>
           </div>
-          <div className="flex gap-3 flex-wrap shrink-0">
+          <div className="flex gap-2 flex-wrap shrink-0">
             <AssignAgentDialog shipmentId={shipment.id} />
             <UpdateStatusDialog
               shipmentId={shipment.id}
@@ -95,11 +172,30 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Two-column info cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full min-w-0">
-        {/* Shipment Info */}
-        <div className="bg-card border border-border rounded-lg p-6 w-full overflow-hidden">
-          <h2 className="text-base font-semibold mb-4">Shipment Info</h2>
+      {/* Assigned Agent Banner */}
+      {shipment.driver && (
+        <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-xl px-5 py-3.5">
+          <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 text-white font-bold text-sm">
+            {shipment.driver.name?.[0]?.toUpperCase() ?? "A"}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-indigo-500 font-semibold uppercase tracking-wide">
+              Assigned Agent
+            </p>
+            <p className="text-sm font-semibold text-indigo-900 truncate">
+              {shipment.driver.name}
+            </p>
+            <p className="text-xs text-indigo-600 truncate">
+              {shipment.driver.email}
+            </p>
+          </div>
+          <UserCheck size={18} className="text-indigo-400 ml-auto shrink-0" />
+        </div>
+      )}
+
+      {/* Info cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <SectionCard title="Shipment Info" icon={Package}>
           <dl className="flex flex-col gap-4">
             <InfoRow
               label="Tracking Number"
@@ -107,19 +203,15 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
               mono
             />
             <InfoRow
-              label="Status"
-              value={<StatusBadge status={shipment.status} />}
-            />
-            <InfoRow
               label="Weight"
-              value={shipment.weight ? `${shipment.weight} kg` : "—"}
+              value={shipment.weight ? `${shipment.weight} kg` : null}
             />
             <InfoRow
               label="Estimated Delivery"
               value={
                 shipment.estimatedDelivery
                   ? new Date(shipment.estimatedDelivery).toLocaleString()
-                  : "—"
+                  : null
               }
             />
             <InfoRow
@@ -131,80 +223,59 @@ export default async function ShipmentDetailPage({ params }: PageProps) {
               value={new Date(shipment.updatedAt).toLocaleString()}
             />
           </dl>
-        </div>
+        </SectionCard>
 
-        {/* Recipient Info */}
-        <div className="bg-card border border-border rounded-lg p-6 w-full overflow-hidden">
-          <h2 className="text-base font-semibold mb-4">Recipient</h2>
+        <SectionCard title="Recipient" icon={User}>
           <dl className="flex flex-col gap-4">
             <InfoRow label="Name" value={shipment.recipientName} />
             <InfoRow label="Address" value={shipment.recipientAddress} />
-            <InfoRow label="Phone" value={shipment.recipientPhone ?? "—"} />
-            <InfoRow label="Email" value={shipment.recipientEmail ?? "—"} />
+            <InfoRow label="Phone" value={shipment.recipientPhone} />
+            <InfoRow label="Email" value={shipment.recipientEmail} />
           </dl>
-        </div>
+        </SectionCard>
       </div>
 
-      {/* Assigned Driver */}
-      {shipment.driver && (
-        <div className="bg-[#fd761a]/10 border border-[#fd761a]/30 rounded-lg px-6 py-4 flex gap-3 items-center w-full min-w-0">
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="shrink-0 text-[#fd761a]"
-          >
-            <circle cx="12" cy="8" r="4" />
-            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-          </svg>
-          <div className="min-w-0">
-            <p className="font-semibold text-sm">Assigned Agent</p>
-            <p className="text-sm text-muted-foreground truncate">
-              {shipment.driver.name} — {shipment.driver.email}
+      {/* QR Code */}
+      <SectionCard title="QR Code" icon={QrCode}>
+        <div className="flex items-center gap-5 flex-wrap">
+          <div className="bg-white p-2 w-fit rounded-lg border border-slate-200 shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/proxy/qrcode/${shipment.id}`}
+              alt={`QR code for shipment ${shipment.trackingNumber}`}
+              width={140}
+              height={140}
+              className="block"
+            />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-700">
+              Scan to Track
+            </p>
+            <p className="text-xs text-slate-500 mt-1 max-w-[200px]">
+              Share this QR code with the recipient to let them track their
+              shipment.
             </p>
           </div>
         </div>
-      )}
-
-      {/* QR Code */}
-      <div className="bg-card border border-border rounded-lg p-6 w-full min-w-0">
-        <h2 className="text-base font-semibold mb-4">QR Code</h2>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <div className="bg-white p-2 w-fit rounded-md border border-border">
-          <img
-            src={`/api/proxy/qrcode/${shipment.id}`}
-            alt={`QR code for shipment ${shipment.trackingNumber}`}
-            width={140}
-            height={140}
-            className="block"
-          />
-        </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          Scan to track this shipment
-        </p>
-      </div>
+      </SectionCard>
 
       {/* Proof of Delivery */}
       {shipment.deliveryProofUrl && (
-        <div className="bg-card border border-border rounded-lg p-6 w-full min-w-0">
-          <h2 className="text-base font-semibold mb-4">Proof of Delivery</h2>
+        <SectionCard title="Proof of Delivery" icon={Package}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={shipment.deliveryProofUrl}
             alt="Proof of delivery"
-            className="max-w-[400px] w-full h-auto rounded-md border border-border"
+            className="max-w-[400px] w-full h-auto rounded-lg border border-slate-200"
           />
-        </div>
+        </SectionCard>
       )}
 
       {/* Tracking Timeline */}
-      <div className="bg-card border border-border rounded-lg p-6 w-full min-w-0">
-        <h2 className="text-base font-semibold mb-6">Tracking History</h2>
+      <SectionCard title="Tracking History" icon={Clock}>
         <ShipmentTimeline events={shipment.events ?? []} />
-      </div>
+      </SectionCard>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Search, Package, MapPin, Clock, User } from "lucide-react";
 import { TrackingProgressBar } from "@/components/tracking/tracking-progress-bar";
 import { TrackingHistory } from "@/components/tracking/tracking-history";
 import type { TrackingResult } from "@/types/tracking.types";
@@ -34,74 +35,38 @@ export default function DashboardTrackingPage() {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-6)",
-        maxWidth: "640px",
-      }}
-    >
+    <div className="flex flex-col gap-6 max-w-2xl">
       {/* Header */}
       <div>
         <h1
-          style={{
-            fontSize: "var(--text-xl)",
-            fontWeight: 700,
-            color: "var(--color-text)",
-          }}
+          className="text-xl font-bold text-slate-900"
+          style={{ fontFamily: "var(--font-display)" }}
         >
           Track Shipment
         </h1>
-        <p
-          style={{
-            fontSize: "var(--text-sm)",
-            color: "var(--color-text-muted)",
-            marginTop: "var(--space-1)",
-          }}
-        >
+        <p className="text-sm text-slate-500 mt-1">
           Look up any shipment by tracking number
         </p>
       </div>
 
-      {/* Search */}
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: "flex", gap: "var(--space-3)" }}
-      >
-        <input
-          type="text"
-          placeholder="e.g. TRK-A1B2C3"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{
-            flex: 1,
-            padding: "var(--space-3) var(--space-4)",
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--color-border)",
-            background: "var(--color-surface)",
-            color: "var(--color-text)",
-            fontSize: "var(--text-base)",
-            outline: "none",
-            fontFamily: "monospace",
-          }}
-          autoFocus
-        />
+      {/* Search bar */}
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <div className="flex-1 flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/30 focus-within:border-indigo-400 transition-all">
+          <Search size={15} className="text-slate-400 shrink-0" />
+          <input
+            type="text"
+            placeholder="e.g. TRK-A1B2C3"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="flex-1 bg-transparent outline-none text-sm font-mono text-slate-800 placeholder:text-slate-400 placeholder:font-sans"
+            autoFocus
+          />
+        </div>
         <button
           type="submit"
           disabled={loading || !query.trim()}
-          style={{
-            padding: "var(--space-3) var(--space-6)",
-            borderRadius: "var(--radius-md)",
-            background: "var(--color-primary)",
-            color: "white",
-            fontWeight: 600,
-            fontSize: "var(--text-sm)",
-            border: "none",
-            cursor: loading ? "wait" : "pointer",
-            opacity: loading || !query.trim() ? 0.6 : 1,
-            whiteSpace: "nowrap",
-          }}
+          className="px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-opacity disabled:opacity-50"
+          style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }}
         >
           {loading ? "Searching…" : "Track"}
         </button>
@@ -109,108 +74,50 @@ export default function DashboardTrackingPage() {
 
       {/* Error */}
       {error && (
-        <div
-          style={{
-            padding: "var(--space-4)",
-            borderRadius: "var(--radius-md)",
-            background: "var(--color-error-highlight)",
-            color: "var(--color-error)",
-            fontSize: "var(--text-sm)",
-            fontWeight: 500,
-          }}
-        >
+        <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
           {error}
         </div>
       )}
 
-      {/* Result */}
+      {/* Result card */}
       {result && (
-        <div
-          style={{
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-xl)",
-            overflow: "hidden",
-          }}
-        >
-          {/* Header */}
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+          {/* Result header */}
           <div
-            style={{
-              background: "var(--color-primary)",
-              padding: "var(--space-5) var(--space-6)",
-              color: "white",
-            }}
+            className="px-6 py-5"
+            style={{ background: "linear-gradient(135deg,#1e1b4b,#312e81)" }}
           >
-            <p
-              style={{
-                fontFamily: "monospace",
-                fontWeight: 700,
-                fontSize: "var(--text-lg)",
-                letterSpacing: "0.05em",
-              }}
-            >
+            <p className="font-mono font-bold text-lg text-white tracking-wide">
               {result.trackingNumber}
             </p>
-            <p
-              style={{
-                fontSize: "var(--text-sm)",
-                opacity: 0.85,
-                marginTop: "var(--space-1)",
-              }}
-            >
-              To: <strong>{result.recipient.name}</strong>
-            </p>
-            <p
-              style={{
-                fontSize: "var(--text-xs)",
-                opacity: 0.7,
-                marginTop: "var(--space-1)",
-              }}
-            >
-              {result.recipient.address}
-            </p>
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <User size={12} className="text-indigo-300" />
+              <p className="text-sm text-indigo-200">
+                To:{" "}
+                <strong className="text-white">{result.recipient.name}</strong>
+              </p>
+            </div>
+            <div className="flex items-start gap-1.5 mt-1">
+              <MapPin size={11} className="text-indigo-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-indigo-300">
+                {result.recipient.address}
+              </p>
+            </div>
           </div>
 
           {/* Progress bar */}
-          <div
-            style={{
-              padding: "var(--space-6)",
-              borderBottom: "1px solid var(--color-border)",
-            }}
-          >
+          <div className="px-6 py-5 border-b border-slate-100">
             <TrackingProgressBar currentStatus={result.currentStatus} />
           </div>
 
-          {/* Meta */}
-          <div
-            style={{
-              padding: "var(--space-4) var(--space-6)",
-              display: "flex",
-              gap: "var(--space-6)",
-              flexWrap: "wrap",
-              borderBottom: "1px solid var(--color-border)",
-              background: "var(--color-surface-offset)",
-            }}
-          >
+          {/* Meta row */}
+          <div className="px-6 py-4 flex gap-8 flex-wrap bg-slate-50 border-b border-slate-100">
             {result.estimatedDelivery && (
               <div>
-                <p
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
                   Est. Delivery
                 </p>
-                <p
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    marginTop: "var(--space-1)",
-                  }}
-                >
+                <p className="text-sm font-semibold text-slate-800 mt-1">
                   {new Date(result.estimatedDelivery).toLocaleDateString(
                     undefined,
                     {
@@ -224,23 +131,10 @@ export default function DashboardTrackingPage() {
             )}
             {result.assignedAgent && (
               <div>
-                <p
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
                   Assigned Agent
                 </p>
-                <p
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    marginTop: "var(--space-1)",
-                  }}
-                >
+                <p className="text-sm font-semibold text-slate-800 mt-1">
                   {result.assignedAgent.name}
                 </p>
               </div>
@@ -248,19 +142,13 @@ export default function DashboardTrackingPage() {
           </div>
 
           {/* History */}
-          <div style={{ padding: "var(--space-6)" }}>
-            <p
-              style={{
-                fontSize: "var(--text-sm)",
-                fontWeight: 600,
-                marginBottom: "var(--space-4)",
-                color: "var(--color-text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Tracking History
-            </p>
+          <div className="px-6 py-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock size={13} className="text-indigo-400" />
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                Tracking History
+              </p>
+            </div>
             <TrackingHistory history={result.history} />
           </div>
         </div>
@@ -268,21 +156,14 @@ export default function DashboardTrackingPage() {
 
       {/* Empty state */}
       {!result && !error && !loading && (
-        <div
-          style={{
-            padding: "var(--space-16)",
-            textAlign: "center",
-            color: "var(--color-text-faint)",
-            border: "1px dashed var(--color-border)",
-            borderRadius: "var(--radius-xl)",
-          }}
-        >
-          <div style={{ fontSize: "2.5rem", marginBottom: "var(--space-3)" }}>
-            🔍
+        <div className="py-16 flex flex-col items-center gap-3 border border-dashed border-slate-200 rounded-2xl text-center bg-slate-50">
+          <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center">
+            <Package size={24} className="text-indigo-400" />
           </div>
-          <p style={{ fontSize: "var(--text-sm)", fontWeight: 500 }}>
+          <p className="text-sm font-semibold text-slate-700">
             Enter a tracking number above
           </p>
+          <p className="text-xs text-slate-400">Format: TRK-XXXXXX</p>
         </div>
       )}
     </div>

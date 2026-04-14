@@ -2,6 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Package,
+  User,
+  MapPin,
+  Mail,
+  Phone,
+  Weight,
+  CalendarDays,
+  Warehouse,
+} from "lucide-react";
 import { shipmentsApi } from "@/lib/api";
 import {
   Dialog,
@@ -25,6 +35,29 @@ const EMPTY_FORM: CreateShipmentInput = {
   hubId: "",
 };
 
+function FieldGroup({
+  icon: Icon,
+  label,
+  children,
+  required,
+}: {
+  icon: React.ElementType;
+  label: string;
+  children: React.ReactNode;
+  required?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+        <Icon size={12} className="text-indigo-400" />
+        {label}
+        {required && <span className="text-red-400 ml-0.5">*</span>}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
 export function CreateShipmentDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -34,6 +67,14 @@ export function CreateShipmentDialog() {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setForm(EMPTY_FORM);
+      setError(null);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -55,8 +96,7 @@ export function CreateShipmentDialog() {
 
     try {
       await shipmentsApi.create(payload);
-      setOpen(false);
-      setForm(EMPTY_FORM);
+      handleOpenChange(false);
       router.refresh();
     } catch (err: any) {
       setError(err?.message ?? "Failed to create shipment");
@@ -66,115 +106,156 @@ export function CreateShipmentDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button className="bg-[#fd761a] hover:bg-[#ea620c] text-white border-transparent">
-          + New Shipment
+        <Button
+          className="gap-2 font-semibold"
+          style={{
+            background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
+            color: "white",
+            border: "none",
+          }}
+        >
+          <Package size={15} />
+          New Shipment
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[520px]">
-        <DialogHeader>
-          <DialogTitle>Create Shipment</DialogTitle>
-        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="recipientName">Recipient Name *</Label>
+      <DialogContent className="p-0 overflow-hidden sm:max-w-[540px] gap-0 rounded-xl border-slate-200">
+        {/* Dialog header — gradient strip */}
+        <div
+          className="px-6 py-5 flex items-center gap-3"
+          style={{ background: "linear-gradient(135deg,#1e1b4b,#312e81)" }}
+        >
+          <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+            <Package size={18} className="text-indigo-300" />
+          </div>
+          <div>
+            <DialogTitle className="text-white font-bold text-base m-0 p-0 leading-tight">
+              Create Shipment
+            </DialogTitle>
+            <p className="text-indigo-300 text-xs mt-0.5">
+              Fill in recipient & package details
+            </p>
+          </div>
+        </div>
+
+        {/* Form body */}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-0">
+          <div className="px-6 py-5 flex flex-col gap-4 border-b border-slate-100">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              Recipient
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FieldGroup icon={User} label="Full Name" required>
+                <Input
+                  name="recipientName"
+                  placeholder="John Doe"
+                  value={form.recipientName}
+                  onChange={handleChange}
+                  required
+                  className="bg-slate-50 border-slate-200 focus:border-indigo-400 focus:ring-indigo-400/20"
+                />
+              </FieldGroup>
+              <FieldGroup icon={Phone} label="Phone">
+                <Input
+                  name="recipientPhone"
+                  placeholder="+91 98765 43210"
+                  value={form.recipientPhone}
+                  onChange={handleChange}
+                  className="bg-slate-50 border-slate-200 focus:border-indigo-400 focus:ring-indigo-400/20"
+                />
+              </FieldGroup>
+            </div>
+
+            <FieldGroup icon={MapPin} label="Delivery Address" required>
               <Input
-                id="recipientName"
-                name="recipientName"
-                placeholder="John Doe"
-                value={form.recipientName}
+                name="recipientAddress"
+                placeholder="123 Main St, Mumbai, Maharashtra"
+                value={form.recipientAddress}
                 onChange={handleChange}
                 required
+                className="bg-slate-50 border-slate-200 focus:border-indigo-400 focus:ring-indigo-400/20"
               />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="recipientPhone">Phone</Label>
+            </FieldGroup>
+
+            <FieldGroup icon={Mail} label="Email">
               <Input
-                id="recipientPhone"
-                name="recipientPhone"
-                placeholder="+91 9876543210"
-                value={form.recipientPhone}
+                name="recipientEmail"
+                type="email"
+                placeholder="john@example.com"
+                value={form.recipientEmail}
                 onChange={handleChange}
+                className="bg-slate-50 border-slate-200 focus:border-indigo-400 focus:ring-indigo-400/20"
               />
+            </FieldGroup>
+          </div>
+
+          <div className="px-6 py-5 flex flex-col gap-4">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              Package Details
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FieldGroup icon={Weight} label="Weight (kg)">
+                <Input
+                  name="weight"
+                  placeholder="2.5"
+                  value={form.weight}
+                  onChange={handleChange}
+                  className="bg-slate-50 border-slate-200 focus:border-indigo-400 focus:ring-indigo-400/20"
+                />
+              </FieldGroup>
+              <FieldGroup icon={CalendarDays} label="Est. Delivery">
+                <Input
+                  name="estimatedDelivery"
+                  type="datetime-local"
+                  value={form.estimatedDelivery}
+                  onChange={handleChange}
+                  className="bg-slate-50 border-slate-200 focus:border-indigo-400 focus:ring-indigo-400/20"
+                />
+              </FieldGroup>
             </div>
-          </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="recipientAddress">Delivery Address *</Label>
-            <Input
-              id="recipientAddress"
-              name="recipientAddress"
-              placeholder="123 Main St, Mumbai, Maharashtra"
-              value={form.recipientAddress}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="recipientEmail">Recipient Email</Label>
-            <Input
-              id="recipientEmail"
-              name="recipientEmail"
-              type="email"
-              placeholder="john@example.com"
-              value={form.recipientEmail}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="weight">Weight (kg)</Label>
+            <FieldGroup icon={Warehouse} label="Hub ID (optional)">
               <Input
-                id="weight"
-                name="weight"
-                placeholder="2.5"
-                value={form.weight}
+                name="hubId"
+                placeholder="UUID of the hub"
+                value={form.hubId}
                 onChange={handleChange}
+                className="bg-slate-50 border-slate-200 focus:border-indigo-400 focus:ring-indigo-400/20 font-mono text-sm"
               />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="estimatedDelivery">Est. Delivery</Label>
-              <Input
-                id="estimatedDelivery"
-                name="estimatedDelivery"
-                type="datetime-local"
-                value={form.estimatedDelivery}
-                onChange={handleChange}
-              />
-            </div>
+            </FieldGroup>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="hubId">Hub ID (optional)</Label>
-            <Input
-              id="hubId"
-              name="hubId"
-              placeholder="UUID of the hub"
-              value={form.hubId}
-              onChange={handleChange}
-            />
-          </div>
+          {error && (
+            <div className="mx-6 mb-4 px-4 py-2.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+              {error}
+            </div>
+          )}
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <div className="flex justify-end gap-3 pt-2">
+          {/* Footer actions */}
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => handleOpenChange(false)}
+              className="border-slate-200 text-slate-600 hover:bg-slate-100"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="bg-[#fd761a] hover:bg-[#ea620c] text-white border-transparent"
+              className="font-semibold gap-2"
+              style={{
+                background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
+                color: "white",
+                border: "none",
+              }}
             >
+              <Package size={14} />
               {loading ? "Creating…" : "Create Shipment"}
             </Button>
           </div>

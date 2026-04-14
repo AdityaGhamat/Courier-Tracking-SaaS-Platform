@@ -105,6 +105,11 @@ export const vehiclesApi = {
   update: (id: string, body: unknown) =>
     request(`vehicles/${id}`, { method: "PUT", body }),
   delete: (id: string) => request(`vehicles/${id}`, { method: "DELETE" }),
+  assignAgent: (id: string, body: { agentId: string }) =>
+    request(`vehicles/${id}/assign-agent`, { method: "PATCH", body }),
+  unassignAgent: (id: string) =>
+    request(`vehicles/${id}/unassign-agent`, { method: "DELETE" }),
+  getMyVehicle: () => request("vehicles/my"),
 };
 
 // ── Analytics
