@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { MapPin, FileText } from "lucide-react";
 import { shipmentsApi } from "@/lib/api";
 import {
   Dialog,
@@ -11,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -43,6 +45,9 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<ShipmentStatus>(currentStatus);
+  // FIX: add location + description — both required by backend
+  const [location, setLocation] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,16 +55,31 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
     setOpen(next);
     if (!next) {
       setStatus(currentStatus);
+      setLocation("");
+      setDescription("");
       setError(null);
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!location.trim()) {
+      setError("Location is required");
+      return;
+    }
+    if (!description.trim()) {
+      setError("Description is required");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      await shipmentsApi.updateStatus(shipmentId, { status });
+      await shipmentsApi.updateStatus(shipmentId, {
+        status,
+        location: location.trim(),
+        description: description.trim(),
+      });
       setOpen(false);
       router.refresh();
     } catch (err: any) {
@@ -69,24 +89,30 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
     }
   }
 
+  const inputCls =
+    "bg-slate-50 border-slate-200 focus:border-indigo-400 text-sm";
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline">Update Status</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle>Update Shipment Status</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="status">New Status</Label>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
+          {/* Status */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              New Status <span className="text-red-400">*</span>
+            </Label>
             <Select
               value={status}
               onValueChange={(v) => setStatus(v as ShipmentStatus)}
             >
-              <SelectTrigger id="status">
-                <SelectValue placeholder="Select status" />
+              <SelectTrigger className={inputCls}>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((opt) => (
@@ -98,9 +124,43 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
             </Select>
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {/* Location — required by backend */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+              <MapPin size={11} /> Current Location{" "}
+              <span className="text-red-400">*</span>
+            </Label>
+            <Input
+              placeholder="Mumbai Sorting Hub, Andheri East"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              required
+              className={inputCls}
+            />
+          </div>
 
-          <div className="flex justify-end gap-3">
+          {/* Description — required by backend */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+              <FileText size={11} /> Description{" "}
+              <span className="text-red-400">*</span>
+            </Label>
+            <Input
+              placeholder="Package arrived at sorting facility"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+              className={inputCls}
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md border border-destructive/20">
+              {error}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-3 pt-1">
             <Button
               type="button"
               variant="outline"
@@ -111,6 +171,8 @@ export function UpdateStatusDialog({ shipmentId, currentStatus }: Props) {
             <Button
               type="submit"
               disabled={loading || status === currentStatus}
+              className="font-semibold text-white border-none"
+              style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }}
             >
               {loading ? "Saving…" : "Save"}
             </Button>

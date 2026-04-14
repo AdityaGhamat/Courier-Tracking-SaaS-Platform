@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import type { DailyShipment } from "@/types/analytics.types";
 
 interface Props {
@@ -7,7 +8,6 @@ interface Props {
   title?: string;
 }
 
-// Fixes the UTC-midnight timezone bug: "2026-04-13" → local Apr 13, not Apr 12
 function parseLocalDate(dateStr: string): Date {
   return new Date(dateStr + "T00:00:00");
 }
@@ -16,41 +16,8 @@ export function DailyChart({
   data,
   title = "Daily Shipments (Last 30 Days)",
 }: Props) {
-  if (!data || data.length === 0) {
-    return (
-      <div
-        style={{
-          background: "var(--color-surface)",
-          border: "1px solid var(--color-border)",
-          borderRadius: "var(--radius-lg)",
-          padding: "var(--space-5) var(--space-6)",
-        }}
-      >
-        <p
-          style={{
-            fontSize: "var(--text-sm)",
-            fontWeight: 600,
-            marginBottom: "var(--space-4)",
-          }}
-        >
-          {title}
-        </p>
-        <p
-          style={{
-            fontSize: "var(--text-sm)",
-            color: "var(--color-text-muted)",
-          }}
-        >
-          No data for this period.
-        </p>
-      </div>
-    );
-  }
-
-  const max = Math.max(...data.map((d) => d.total), 1);
-
   const filled = (() => {
-    const map = new Map(data.map((d) => [d.date, d.total]));
+    const map = new Map(data?.map((d) => [d.date, d.total]));
     const result: DailyShipment[] = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date();
@@ -61,77 +28,42 @@ export function DailyChart({
     return result;
   })();
 
+  const max = Math.max(...filled.map((d) => d.total), 1);
+  const period = filled.reduce((s, d) => s + d.total, 0);
   const todayKey = new Date().toISOString().slice(0, 10);
 
-  return (
-    <div
-      style={{
-        background: "var(--color-surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-lg)",
-        padding: "var(--space-5) var(--space-6)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-4)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          gap: "var(--space-4)",
-        }}
-      >
-        <p
-          style={{
-            fontSize: "var(--text-sm)",
-            fontWeight: 600,
-            color: "var(--color-text)",
-          }}
-        >
-          {title}
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-5 shadow-sm">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="text-sm text-muted-foreground">
+          No data for this period.
         </p>
-        <p
-          style={{
-            fontSize: "var(--text-xs)",
-            color: "var(--color-text-faint)",
-            flexShrink: 0,
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          Total: {data.reduce((s, d) => s + d.total, 0).toLocaleString()}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+      {/* Header */}
+      <div className="flex items-baseline justify-between gap-4">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="shrink-0 text-xs tabular-nums text-muted-foreground">
+          Total:{" "}
+          <span className="font-semibold text-foreground">
+            {period.toLocaleString()}
+          </span>
         </p>
       </div>
 
-      {/* Y-axis + bars */}
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-2)",
-          alignItems: "flex-end",
-          height: "120px",
-        }}
-      >
-        {/* Y labels */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            height: "100%",
-            alignItems: "flex-end",
-            flexShrink: 0,
-          }}
-        >
+      {/* Chart */}
+      <div className="flex items-end gap-[3px]" style={{ height: "120px" }}>
+        {/* Y-axis */}
+        <div className="flex h-full flex-col justify-between pr-2 shrink-0">
           {[max, Math.round(max / 2), 0].map((v) => (
             <span
               key={v}
-              style={{
-                fontSize: "var(--text-xs)",
-                color: "var(--color-text-faint)",
-                fontVariantNumeric: "tabular-nums",
-              }}
+              className="text-[10px] tabular-nums text-muted-foreground/60 leading-none"
             >
               {v}
             </span>
@@ -139,33 +71,24 @@ export function DailyChart({
         </div>
 
         {/* Bars */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "flex-end",
-            gap: "2px",
-            height: "100%",
-            paddingLeft: "var(--space-2)",
-          }}
-        >
+        <div className="flex flex-1 items-end gap-[2px] h-full">
           {filled.map((day) => {
             const heightPct = max > 0 ? (day.total / max) * 100 : 0;
             const isToday = day.date === todayKey;
+            const hasData = day.total > 0;
             return (
               <div
                 key={day.date}
                 title={`${day.date}: ${day.total} shipments`}
+                className={cn(
+                  "flex-1 rounded-t-sm transition-all duration-500 cursor-default",
+                  isToday
+                    ? "bg-indigo-500"
+                    : "bg-indigo-200 dark:bg-indigo-900/60",
+                )}
                 style={{
-                  flex: 1,
-                  height: `${Math.max(heightPct, day.total > 0 ? 4 : 0)}%`,
-                  minHeight: day.total > 0 ? "4px" : "0",
-                  background: isToday
-                    ? "var(--color-primary)"
-                    : "var(--color-primary-highlight)",
-                  borderRadius: "var(--radius-sm) var(--radius-sm) 0 0",
-                  transition: "height 400ms cubic-bezier(0.16, 1, 0.3, 1)",
-                  cursor: "default",
+                  height: hasData ? `${Math.max(heightPct, 4)}%` : "2px",
+                  opacity: hasData ? 1 : 0.3,
                 }}
               />
             );
@@ -173,26 +96,14 @@ export function DailyChart({
         </div>
       </div>
 
-      {/* X-axis — first, middle, last */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          paddingLeft: "28px",
-        }}
-      >
+      {/* X-axis labels */}
+      <div className="flex justify-between pl-7">
         {[
           filled[0],
           filled[Math.floor(filled.length / 2)],
           filled[filled.length - 1],
         ].map((d) => (
-          <span
-            key={d.date}
-            style={{
-              fontSize: "var(--text-xs)",
-              color: "var(--color-text-faint)",
-            }}
-          >
+          <span key={d.date} className="text-[10px] text-muted-foreground/60">
             {parseLocalDate(d.date).toLocaleDateString(undefined, {
               month: "short",
               day: "numeric",

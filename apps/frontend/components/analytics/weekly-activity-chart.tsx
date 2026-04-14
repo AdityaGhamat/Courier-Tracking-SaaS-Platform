@@ -6,45 +6,13 @@ interface Props {
   data: WeeklyActivity[];
 }
 
-// Fixes UTC-midnight timezone bug
 function parseLocalDate(dateStr: string): Date {
   return new Date(dateStr + "T00:00:00");
 }
 
 export function WeeklyActivityChart({ data }: Props) {
-  if (!data || data.length === 0) {
-    return (
-      <div
-        style={{
-          background: "var(--color-surface)",
-          border: "1px solid var(--color-border)",
-          borderRadius: "var(--radius-lg)",
-          padding: "var(--space-5) var(--space-6)",
-        }}
-      >
-        <p
-          style={{
-            fontSize: "var(--text-sm)",
-            fontWeight: 600,
-            marginBottom: "var(--space-4)",
-          }}
-        >
-          Weekly Activity
-        </p>
-        <p
-          style={{
-            fontSize: "var(--text-sm)",
-            color: "var(--color-text-muted)",
-          }}
-        >
-          No activity in the last 7 days.
-        </p>
-      </div>
-    );
-  }
-
   const filled = (() => {
-    const map = new Map(data.map((d) => [d.date, d]));
+    const map = new Map(data?.map((d) => [d.date, d]));
     const result: WeeklyActivity[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
@@ -56,80 +24,38 @@ export function WeeklyActivityChart({ data }: Props) {
   })();
 
   const max = Math.max(...filled.flatMap((d) => [d.delivered, d.failed]), 1);
-
   const totalDelivered = filled.reduce((s, d) => s + d.delivered, 0);
   const totalFailed = filled.reduce((s, d) => s + d.failed, 0);
 
-  return (
-    <div
-      style={{
-        background: "var(--color-surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-lg)",
-        padding: "var(--space-5) var(--space-6)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-4)",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "var(--space-2)",
-        }}
-      >
-        <p style={{ fontSize: "var(--text-sm)", fontWeight: 600 }}>
-          Weekly Activity
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-5 shadow-sm">
+        <p className="text-sm font-semibold text-foreground">Weekly Activity</p>
+        <p className="text-sm text-muted-foreground">
+          No activity in the last 7 days.
         </p>
-        <div style={{ display: "flex", gap: "var(--space-4)" }}>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+      {/* Header */}
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm font-semibold text-foreground">Weekly Activity</p>
+        <div className="flex gap-4">
           {[
             {
               label: "Delivered",
-              color: "var(--color-success)",
+              color: "bg-green-500",
               count: totalDelivered,
             },
-            {
-              label: "Failed",
-              color: "var(--color-error)",
-              count: totalFailed,
-            },
+            { label: "Failed", color: "bg-red-400", count: totalFailed },
           ].map((l) => (
-            <div
-              key={l.label}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-1)",
-              }}
-            >
-              <div
-                style={{
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "2px",
-                  background: l.color,
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "var(--text-xs)",
-                  color: "var(--color-text-muted)",
-                }}
-              >
-                {l.label}
-              </span>
-              <span
-                style={{
-                  fontSize: "var(--text-xs)",
-                  color: "var(--color-text)",
-                  fontWeight: 600,
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
+            <div key={l.label} className="flex items-center gap-1.5">
+              <div className={`h-2 w-2 rounded-sm ${l.color}`} />
+              <span className="text-xs text-muted-foreground">{l.label}</span>
+              <span className="text-xs font-semibold tabular-nums text-foreground">
                 {l.count}
               </span>
             </div>
@@ -138,70 +64,38 @@ export function WeeklyActivityChart({ data }: Props) {
       </div>
 
       {/* Bars */}
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-3)",
-          alignItems: "flex-end",
-          height: "100px",
-        }}
-      >
+      <div className="flex items-end gap-3" style={{ height: "100px" }}>
         {filled.map((day) => {
-          const deliveredH = (day.delivered / max) * 100;
-          const failedH = (day.failed / max) * 100;
-          // ✅ Fixed: parseLocalDate so Mon/Apr-12 doesn't show as Sun/Apr-11
+          const dH = max > 0 ? (day.delivered / max) * 100 : 0;
+          const fH = max > 0 ? (day.failed / max) * 100 : 0;
           const label = parseLocalDate(day.date).toLocaleDateString(undefined, {
             weekday: "short",
           });
+
           return (
             <div
               key={day.date}
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "var(--space-1)",
-                height: "100%",
-              }}
+              className="flex flex-1 flex-col items-center gap-1 h-full"
             >
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "flex-end",
-                  gap: "2px",
-                  width: "100%",
-                }}
-              >
+              <div className="flex flex-1 w-full items-end gap-[2px]">
                 <div
                   title={`Delivered: ${day.delivered}`}
+                  className="flex-1 rounded-t-sm bg-green-500 transition-all duration-500"
                   style={{
-                    flex: 1,
-                    height: `${Math.max(deliveredH, day.delivered > 0 ? 4 : 0)}%`,
-                    background: "var(--color-success)",
-                    borderRadius: "var(--radius-sm) var(--radius-sm) 0 0",
-                    transition: "height 400ms ease",
+                    height: day.delivered > 0 ? `${Math.max(dH, 4)}%` : "2px",
+                    opacity: day.delivered > 0 ? 1 : 0.2,
                   }}
                 />
                 <div
                   title={`Failed: ${day.failed}`}
+                  className="flex-1 rounded-t-sm bg-red-400 transition-all duration-500"
                   style={{
-                    flex: 1,
-                    height: `${Math.max(failedH, day.failed > 0 ? 4 : 0)}%`,
-                    background: "var(--color-error)",
-                    borderRadius: "var(--radius-sm) var(--radius-sm) 0 0",
-                    transition: "height 400ms ease",
-                    opacity: 0.75,
+                    height: day.failed > 0 ? `${Math.max(fH, 4)}%` : "2px",
+                    opacity: day.failed > 0 ? 0.8 : 0.15,
                   }}
                 />
               </div>
-              <span
-                style={{
-                  fontSize: "var(--text-xs)",
-                  color: "var(--color-text-faint)",
-                }}
-              >
+              <span className="text-[10px] text-muted-foreground/70">
                 {label}
               </span>
             </div>

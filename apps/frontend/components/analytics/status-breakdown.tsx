@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import type { ShipmentStats } from "@/types/analytics.types";
 
 interface Props {
@@ -7,54 +8,45 @@ interface Props {
 const BARS: {
   key: keyof (ShipmentStats & { pending?: number; outForDelivery?: number });
   label: string;
-  color: string;
+  bar: string;
+  dot: string;
 }[] = [
-  { key: "delivered", label: "Delivered", color: "var(--color-success)" },
-  { key: "inTransit", label: "In Transit", color: "var(--color-orange)" },
+  {
+    key: "delivered",
+    label: "Delivered",
+    bar: "bg-green-500",
+    dot: "bg-green-500",
+  },
+  {
+    key: "inTransit",
+    label: "In Transit",
+    bar: "bg-orange-400",
+    dot: "bg-orange-400",
+  },
   {
     key: "outForDelivery",
     label: "Out for Delivery",
-    color: "var(--color-primary)",
+    bar: "bg-indigo-500",
+    dot: "bg-indigo-500",
   },
-  { key: "pending", label: "Label Created", color: "var(--color-text-faint)" },
-  { key: "failed", label: "Failed", color: "var(--color-error)" },
+  {
+    key: "pending",
+    label: "Label Created",
+    bar: "bg-slate-300 dark:bg-slate-600",
+    dot: "bg-slate-400",
+  },
+  { key: "failed", label: "Failed", bar: "bg-red-500", dot: "bg-red-500" },
 ];
 
 export function StatusBreakdown({ stats }: Props) {
-  const total = stats.total || 1; // avoid divide-by-zero
+  const total = stats.total || 1;
 
   return (
-    <div
-      style={{
-        background: "var(--color-surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-lg)",
-        padding: "var(--space-5) var(--space-6)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-4)",
-      }}
-    >
-      <p
-        style={{
-          fontSize: "var(--text-sm)",
-          fontWeight: 600,
-          color: "var(--color-text)",
-        }}
-      >
-        Status Breakdown
-      </p>
+    <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+      <p className="text-sm font-semibold text-foreground">Status Breakdown</p>
 
       {/* Stacked bar */}
-      <div
-        style={{
-          display: "flex",
-          height: "10px",
-          borderRadius: "var(--radius-full)",
-          overflow: "hidden",
-          gap: "2px",
-        }}
-      >
+      <div className="flex h-2.5 overflow-hidden rounded-full gap-[2px]">
         {BARS.map((bar) => {
           const val = (stats[bar.key] as number) ?? 0;
           const pct = (val / total) * 100;
@@ -62,90 +54,37 @@ export function StatusBreakdown({ stats }: Props) {
           return (
             <div
               key={bar.key}
-              style={{
-                height: "100%",
-                width: `${pct}%`,
-                background: bar.color,
-                borderRadius: "var(--radius-full)",
-                transition: "width 400ms cubic-bezier(0.16, 1, 0.3, 1)",
-              }}
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                bar.bar,
+              )}
+              style={{ width: `${pct}%` }}
               title={`${bar.label}: ${val}`}
             />
           );
         })}
       </div>
 
-      {/* Legend rows */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "var(--space-3)",
-        }}
-      >
+      {/* Legend */}
+      <div className="flex flex-col gap-2.5">
         {BARS.map((bar) => {
           const val = (stats[bar.key] as number) ?? 0;
           const pct = total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
           return (
-            <div
-              key={bar.key}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-2)",
-                }}
-              >
+            <div key={bar.key} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <div
-                  style={{
-                    width: "10px",
-                    height: "10px",
-                    borderRadius: "var(--radius-full)",
-                    background: bar.color,
-                    flexShrink: 0,
-                  }}
+                  className={cn("h-2.5 w-2.5 rounded-full shrink-0", bar.dot)}
                 />
-                <span
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    color: "var(--color-text-muted)",
-                  }}
-                >
+                <span className="text-sm text-muted-foreground">
                   {bar.label}
                 </span>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-3)",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    color: "var(--color-text)",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold tabular-nums text-foreground">
                   {val.toLocaleString()}
                 </span>
-                <span
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-faint)",
-                    width: "40px",
-                    textAlign: "right",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
+                <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">
                   {pct}%
                 </span>
               </div>

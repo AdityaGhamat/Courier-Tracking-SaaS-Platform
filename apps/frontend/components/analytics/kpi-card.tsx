@@ -1,87 +1,82 @@
-import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface KpiCardProps {
   label: string;
   value: number | string;
   sub?: string;
-  accent?: string;
-  icon?: ReactNode;
+  icon: LucideIcon;
+  variant?:
+    | "default"
+    | "success"
+    | "warning"
+    | "danger"
+    | "primary"
+    | "blue"
+    | "purple";
 }
 
-export function KpiCard({ label, value, sub, accent, icon }: KpiCardProps) {
-  const color = accent ?? "var(--color-primary)";
+const VARIANT_STYLES: Record<
+  NonNullable<KpiCardProps["variant"]>,
+  { iconBg: string; value: string }
+> = {
+  default: { iconBg: "bg-slate-600", value: "text-foreground" },
+  success: {
+    iconBg: "bg-green-500",
+    value: "text-green-600 dark:text-green-400",
+  },
+  warning: {
+    iconBg: "bg-orange-500",
+    value: "text-orange-600 dark:text-orange-400",
+  },
+  danger: { iconBg: "bg-red-500", value: "text-red-600 dark:text-red-400" },
+  primary: {
+    iconBg: "bg-indigo-500",
+    value: "text-indigo-600 dark:text-indigo-400",
+  },
+  blue: { iconBg: "bg-sky-500", value: "text-sky-600 dark:text-sky-400" },
+  purple: {
+    iconBg: "bg-violet-500",
+    value: "text-violet-600 dark:text-violet-400",
+  },
+};
+
+export function KpiCard({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  variant = "default",
+}: KpiCardProps) {
+  const styles = VARIANT_STYLES[variant];
 
   return (
-    <div
-      style={{
-        background: "var(--color-surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-lg)",
-        padding: "var(--space-5) var(--space-6)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-2)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <p
-          style={{
-            fontSize: "var(--text-xs)",
-            color: "var(--color-text-muted)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-            fontWeight: 600,
-          }}
-        >
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           {label}
         </p>
-        {icon && (
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "var(--radius-md)",
-              background: "var(--color-surface-offset)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color,
-              flexShrink: 0,
-            }}
-          >
-            {icon}
-          </div>
-        )}
+
+        <div
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-lg text-white",
+            styles.iconBg,
+          )}
+        >
+          <Icon size={15} />
+        </div>
       </div>
 
       <p
-        style={{
-          fontSize: "var(--text-2xl)",
-          fontWeight: 800,
-          color,
-          fontVariantNumeric: "tabular-nums",
-          lineHeight: 1,
-        }}
+        className={cn(
+          "text-3xl font-extrabold tabular-nums leading-none",
+          styles.value,
+        )}
       >
         {typeof value === "number" ? value.toLocaleString() : value}
       </p>
 
-      {sub && (
-        <p
-          style={{
-            fontSize: "var(--text-xs)",
-            color: "var(--color-text-faint)",
-          }}
-        >
-          {sub}
-        </p>
-      )}
+      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }

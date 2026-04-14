@@ -1,29 +1,14 @@
-//  Cookie-based auth flow:
-//    • Every request sends credentials (cookies) automatically
-//    • On 401: silently call POST /api/proxy/auth/refresh-session
-//      which hits  POST /api/v1/auth/refresh-session on the backend
-//      → backend reads refresh_key cookie → issues new session_key
-//        + refresh_key cookies → original request is retried ONCE
-//    • If refresh itself fails → redirect to /login
-//    • Concurrent 401s during refresh are queued and replayed after
-//      refresh succeeds (same pattern as your reference project)
-// ─────────────────────────────────────────────────────────────────
-
 const PROXY_BASE = "/api/proxy";
 const REFRESH_PATH = "auth/refresh-session";
 
-// ── Refresh-queue state (module-level singleton, like authState in your ref) ──
 let isRefreshing = false;
 let isRedirecting = false;
 const refreshQueue: Array<() => void> = [];
 
-/** Drain the queue — replay all requests that were waiting for a new token */
 function flushQueue() {
   refreshQueue.forEach((cb) => cb());
   refreshQueue.length = 0;
 }
-
-// ── URL builder ───────────────────────────────────────────────────────────────
 
 type Params = Record<string, string | number | boolean | undefined>;
 
@@ -37,13 +22,10 @@ function buildUrl(path: string, params?: Params): string {
   return url.toString();
 }
 
-// ── Core fetch wrapper ────────────────────────────────────────────────────────
-
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   params?: Params;
-  /** Internal — prevents infinite retry loop */
   _retry?: boolean;
 };
 
@@ -60,21 +42,17 @@ async function request<T>(
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 
-  // ── Happy path ──────────────────────────────────────────────────
   if (res.ok) {
     return res.json().catch(() => ({}) as T);
   }
 
-  // ── Parse error body ────────────────────────────────────────────
   const errData = await res.json().catch(() => ({}) as Record<string, unknown>);
 
-  // ── Skip refresh for auth endpoints & the refresh call itself ───
   const isAuthEndpoint =
     path.startsWith("auth/login") ||
     path.startsWith("auth/register") ||
     path === REFRESH_PATH;
 
-  // ── 401 handling — attempt silent token refresh ─────────────────
   if (res.status === 401 && !_retry && !isAuthEndpoint) {
     if (isRefreshing) {
       return new Promise<T>((resolve, reject) => {
@@ -91,8 +69,6 @@ async function request<T>(
     isRefreshing = true;
 
     try {
-      // POST /api/proxy/auth/refresh-session
-
       await fetch(buildUrl(REFRESH_PATH), {
         method: "POST",
         credentials: "include",
@@ -103,7 +79,6 @@ async function request<T>(
 
       isRefreshing = false;
       flushQueue();
-
       return await request<T>(path, { ...options, _retry: true });
     } catch {
       isRefreshing = false;
@@ -119,7 +94,6 @@ async function request<T>(
       if (!isRedirecting && !isPublic) {
         isRedirecting = true;
         window.location.replace("/login");
-
         setTimeout(() => {
           isRedirecting = false;
         }, 3000);
@@ -145,10 +119,6 @@ async function request<T>(
   throw error;
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  API modules
-// ─────────────────────────────────────────────────────────────────
-
 // ── Auth
 export const authApi = {
   registerTenant: (body: unknown) =>
@@ -160,7 +130,6 @@ export const authApi = {
   getMe: () => request("auth/me"),
   registerAgent: (body: unknown) =>
     request("auth/register-agent", { method: "POST", body }),
-  // Explicit export so components can call it directly if needed
   refreshSession: () => request(REFRESH_PATH, { method: "POST" }),
 };
 
@@ -169,9 +138,12 @@ export const shipmentsApi = {
   list: (params?: Params) => request("shipments", { params }),
   getById: (id: string) => request(`shipments/${id}`),
   create: (body: unknown) => request("shipments", { method: "POST", body }),
-  updateStatus: (id: string, body: unknown) =>
-    request(`shipments/${id}/status`, { method: "POST", body }),
-  assignAgent: (id: string, body: unknown) =>
+  // FIX: backend requires status + location + description
+  updateStatus: (
+    id: string,
+    body: { status: string; location: string; description: string },
+  ) => request(`shipments/${id}/status`, { method: "POST", body }),
+  assignAgent: (id: string, body: { agentId: string }) =>
     request(`shipments/${id}/assign-agent`, { method: "POST", body }),
   myShipments: (params?: Params) =>
     request("shipments/my/shipments", { params }),
@@ -185,7 +157,7 @@ export const shipmentsApi = {
     }),
 };
 
-// ── Tracking
+// ── Tracking (public)
 export const trackingApi = {
   track: (trackingId: string) => request(`track/${trackingId}`),
 };
@@ -214,9 +186,10 @@ export const vehiclesApi = {
   getMyVehicle: () => request("vehicles/my"),
 };
 
-// ── Analytics
 export const analyticsApi = {
-  getDashboard: () => request("analytics"),
+  getWorkspaceDashboard: () => request("analytics/workspace"),
+  getPlatformDashboard: () => request("analytics/platform"),
+  getAgentDashboard: () => request("analytics/agent"),
 };
 
 // ── Payments
