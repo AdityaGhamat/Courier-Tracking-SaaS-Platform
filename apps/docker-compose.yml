@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: courier-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+
+  # Backend Node.js service
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: courier-backend
+    ports:
+      - "3005:3005"
+    env_file:
+      - ./apps/backend/.env
+    depends_on:
+      - redis
+    restart: always
+
+volumes:
+  redis_data:
