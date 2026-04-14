@@ -2,11 +2,13 @@ import { serverFetch } from "@/lib/server-api";
 import type { Hub } from "@/types";
 import { CreateHubDialog } from "@/components/hubs/create-hub-dialog";
 import { EditHubDialog } from "@/components/hubs/edit-hub-dialog";
+import { HubShipmentsButton } from "@/components/hubs/hub-shipments-button";
 
 async function getHubs(): Promise<Hub[]> {
   try {
     const res = await serverFetch<{ data: Hub[] }>("hubs");
-    return res.data ?? [];
+
+    return (res.data ?? []).filter((h) => h.isActive !== false);
   } catch {
     return [];
   }
@@ -77,18 +79,27 @@ export default async function HubsPage() {
                   <p className="font-semibold text-sm text-slate-800 truncate">
                     {hub.name}
                   </p>
-                  <p className="text-xs text-slate-500">{hub.city}</p>
+                  <p className="text-xs text-slate-500">
+                    {hub.city}
+                    {hub.state ? `, ${hub.state}` : ""}
+                    {hub.country ? `, ${hub.country}` : ""}
+                  </p>
                 </div>
               </div>
+
               {hub.address && (
                 <p className="text-xs text-slate-400 leading-relaxed">
                   {hub.address}
                 </p>
               )}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[10px] font-mono text-slate-400 truncate max-w-[150px]">
-                  {hub.id}
-                </span>
+              {hub.phone && (
+                <p className="text-xs text-slate-400">📞 {hub.phone}</p>
+              )}
+
+              {/* Actions row */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                {/* View shipments — client component */}
+                <HubShipmentsButton hubId={hub.id} hubName={hub.name} />
                 <EditHubDialog hub={hub} />
               </div>
             </div>

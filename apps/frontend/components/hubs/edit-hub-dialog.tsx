@@ -90,6 +90,7 @@ export function EditHubDialog({ hub }: { hub: Hub }) {
       router.refresh();
     } catch (err: any) {
       setError(err?.message ?? "Failed to delete hub");
+      setDeleting(false);
     } finally {
       setDeleting(false);
     }

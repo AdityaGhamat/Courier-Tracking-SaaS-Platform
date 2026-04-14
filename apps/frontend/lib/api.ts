@@ -168,8 +168,15 @@ export const hubsApi = {
   create: (body: unknown) => request("hubs", { method: "POST", body }),
   getById: (id: string) => request(`hubs/${id}`),
   update: (id: string, body: unknown) =>
-    request(`hubs/${id}`, { method: "PUT", body }),
+    request(`hubs/${id}`, { method: "PATCH", body }), // ← was PUT, fix to PATCH
   delete: (id: string) => request(`hubs/${id}`, { method: "DELETE" }),
+  // ── ADD THESE TWO:
+  assignShipment: (shipmentId: string, hubId: string) =>
+    request(`hubs/shipments/${shipmentId}/assign`, {
+      method: "POST",
+      body: { hubId },
+    }),
+  getShipments: (hubId: string) => request(`hubs/${hubId}/shipments`),
 };
 
 // ── Vehicles

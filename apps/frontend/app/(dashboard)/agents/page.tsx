@@ -38,7 +38,7 @@ function AgentInitial({ name }: { name: string }) {
 
 export default async function AgentsPage() {
   const agents = await getAgents();
-
+  console.log(`agents : ${agents}`);
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
