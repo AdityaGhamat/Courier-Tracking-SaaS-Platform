@@ -164,6 +164,8 @@ router.post(
   authController.registerSuperAdmin,
 );
 
+router.post("/refresh-session", authController.refreshSession);
+
 /**
  * @swagger
  * /api/auth/logout:
@@ -193,5 +195,14 @@ router.post("/logout", authController.logout);
  *         description: Not authenticated
  */
 router.get("/me", AuthMiddleware, authController.me);
+
+router.post(
+  "/register-agent",
+  AuthMiddleware,
+  requireRole(["admin"]),
+  authRateLimit,
+  validate(registerAgentSchema),
+  authController.registerAgent,
+);
 
 export default router;
