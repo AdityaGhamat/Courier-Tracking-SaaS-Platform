@@ -170,7 +170,7 @@ export const hubsApi = {
   update: (id: string, body: unknown) =>
     request(`hubs/${id}`, { method: "PATCH", body }), // ← was PUT, fix to PATCH
   delete: (id: string) => request(`hubs/${id}`, { method: "DELETE" }),
-  // ── ADD THESE TWO:
+
   assignShipment: (shipmentId: string, hubId: string) =>
     request(`hubs/shipments/${shipmentId}/assign`, {
       method: "POST",

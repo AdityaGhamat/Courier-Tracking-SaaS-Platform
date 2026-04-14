@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { hubsApi } from "@/lib/api";
+import { useState, useEffect } from "react";
+import { hubsApi, shipmentsApi } from "@/lib/api";
 import { Package, Plus, X, Loader2, ChevronRight } from "lucide-react";
 
 interface Shipment {
   id: string;
-  trackingId: string;
+  trackingNumber: string; // backend field is trackingNumber not trackingId
   status: string;
   recipientName?: string;
+  hubId?: string | null;
 }
 
+// ── Assign Dialog ────────────────────────────────────────────────
 function AssignDialog({
   hubId,
   onClose,
@@ -20,17 +22,32 @@ function AssignDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const [shipmentId, setShipmentId] = useState("");
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [loadingShipments, setLoadingShipments] = useState(true);
+  const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    shipmentsApi
+      .list()
+      .then((res: any) => {
+        // listShipments returns: { data: { shipments: [...], page, limit } }
+        const all: Shipment[] = res?.data?.shipments ?? res?.data ?? [];
+        // Only show shipments not already assigned to any hub
+        setShipments(all.filter((s) => !s.hubId));
+      })
+      .finally(() => setLoadingShipments(false));
+  }, []);
+
+  async function handleAssign(e: React.FormEvent) {
     e.preventDefault();
-    if (!shipmentId.trim()) return;
+    if (!selectedId) return;
     setLoading(true);
     setError("");
     try {
-      await hubsApi.assignShipment(shipmentId.trim(), hubId);
+      // selectedId is parcels.id (UUID), NOT the tracking number
+      await hubsApi.assignShipment(selectedId, hubId);
       onDone();
       onClose();
     } catch (err: any) {
@@ -54,20 +71,42 @@ function AssignDialog({
             <X size={16} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5">
+
+        <form onSubmit={handleAssign} className="flex flex-col gap-4 p-5">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-slate-600">
-              Shipment ID *
+              Select Shipment *
             </label>
-            <input
-              required
-              value={shipmentId}
-              onChange={(e) => setShipmentId(e.target.value)}
-              placeholder="Paste shipment UUID"
-              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-            />
+
+            {loadingShipments ? (
+              <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+                <Loader2 size={13} className="animate-spin" />
+                Loading shipments...
+              </div>
+            ) : shipments.length === 0 ? (
+              <p className="text-xs text-slate-400 italic py-2">
+                No unassigned shipments available.
+              </p>
+            ) : (
+              <select
+                required
+                value={selectedId}
+                onChange={(e) => setSelectedId(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              >
+                <option value="">-- Pick a shipment --</option>
+                {shipments.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.trackingNumber} — {s.recipientName ?? "Unknown"} (
+                    {s.status?.replace(/_/g, " ")})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
+
           {error && <p className="text-xs text-red-600">{error}</p>}
+
           <div className="flex gap-3">
             <button
               type="button"
@@ -78,10 +117,11 @@ function AssignDialog({
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !selectedId || loadingShipments}
               className="flex-1 rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              {loading && <Loader2 size={13} className="animate-spin" />} Assign
+              {loading && <Loader2 size={13} className="animate-spin" />}
+              Assign
             </button>
           </div>
         </form>
@@ -90,6 +130,7 @@ function AssignDialog({
   );
 }
 
+// ── Shipments Drawer ─────────────────────────────────────────────
 function ShipmentsDrawer({
   hubId,
   hubName,
@@ -103,14 +144,23 @@ function ShipmentsDrawer({
   const [loading, setLoading] = useState(true);
   const [showAssign, setShowAssign] = useState(false);
 
-  useState(() => {
+  function loadShipments() {
+    setLoading(true);
     hubsApi
       .getShipments(hubId)
       .then((res: any) => {
-        setShipments(res?.data ?? res ?? []);
+        // getHubShipments returns array directly in data (no pagination wrapper)
+        const list = Array.isArray(res?.data)
+          ? res.data
+          : (res?.data?.shipments ?? []);
+        setShipments(list);
       })
       .finally(() => setLoading(false));
-  });
+  }
+
+  useEffect(() => {
+    loadShipments();
+  }, [hubId]);
 
   return (
     <>
@@ -122,15 +172,20 @@ function ShipmentsDrawer({
           className="h-full w-full max-w-md bg-white shadow-2xl flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
             <div>
               <h2 className="text-base font-bold text-slate-900">{hubName}</h2>
-              <p className="text-xs text-slate-500">Assigned shipments</p>
+              <p className="text-xs text-slate-500">
+                {loading
+                  ? "Loading..."
+                  : `${shipments.length} shipment${shipments.length !== 1 ? "s" : ""} assigned`}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowAssign(true)}
-                className="flex items-center gap-1 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-100"
+                className="flex items-center gap-1 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-100 transition-colors"
               >
                 <Plus size={11} /> Assign
               </button>
@@ -143,6 +198,7 @@ function ShipmentsDrawer({
             </div>
           </div>
 
+          {/* Body */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
             {loading ? (
               <div className="flex items-center justify-center py-16">
@@ -153,6 +209,9 @@ function ShipmentsDrawer({
                 <Package size={32} className="text-slate-300" />
                 <p className="text-sm font-semibold text-slate-500">
                   No shipments at this hub
+                </p>
+                <p className="text-xs text-slate-400">
+                  Assign a shipment to see it here.
                 </p>
                 <button
                   onClick={() => setShowAssign(true)}
@@ -166,13 +225,13 @@ function ShipmentsDrawer({
                 {shipments.map((s) => (
                   <div
                     key={s.id}
-                    className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
+                    className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 hover:border-indigo-100 transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-slate-800 font-mono">
-                        {s.trackingId}
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-800 font-mono truncate">
+                        {s.trackingNumber}
                       </p>
-                      <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-600 capitalize">
+                      <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-600 capitalize">
                         {s.status?.replace(/_/g, " ")}
                       </span>
                     </div>
@@ -193,21 +252,14 @@ function ShipmentsDrawer({
         <AssignDialog
           hubId={hubId}
           onClose={() => setShowAssign(false)}
-          onDone={() => {
-            setLoading(true);
-            hubsApi
-              .getShipments(hubId)
-              .then((res: any) => {
-                setShipments(res?.data ?? res ?? []);
-              })
-              .finally(() => setLoading(false));
-          }}
+          onDone={loadShipments}
         />
       )}
     </>
   );
 }
 
+// ── Export ───────────────────────────────────────────────────────
 export function HubShipmentsButton({
   hubId,
   hubName,
