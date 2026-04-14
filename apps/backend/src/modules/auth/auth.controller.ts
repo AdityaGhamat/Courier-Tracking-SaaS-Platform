@@ -206,7 +206,8 @@ class AuthController {
   }
   async me(req: Request, res: Response, next: NextFunction) {
     try {
-      const user = (req as any).user;
+      const { id } = (req as any).user;
+      const user = await authService.getProfile(id);
       return SuccessResponse(res, 200, { user }, "Authenticated user");
     } catch (error) {
       next(error);

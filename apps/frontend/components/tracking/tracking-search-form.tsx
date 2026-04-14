@@ -5,6 +5,15 @@ import { useRouter, usePathname } from "next/navigation";
 import { TrackingProgressBar } from "./tracking-progress-bar";
 import { TrackingHistory } from "./tracking-history";
 import type { TrackingResult } from "@/types/tracking.types";
+import {
+  Search,
+  Package,
+  MapPin,
+  User,
+  Copy,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
 
 interface Props {
   initialQuery?: string;
@@ -13,11 +22,11 @@ interface Props {
 export function TrackingSearchForm({ initialQuery = "" }: Props) {
   const router = useRouter();
   const pathname = usePathname();
-
   const [query, setQuery] = useState(initialQuery);
   const [result, setResult] = useState<TrackingResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function fetchTracking(trackingNumber: string) {
     const q = trackingNumber.trim();
@@ -25,10 +34,7 @@ export function TrackingSearchForm({ initialQuery = "" }: Props) {
     setLoading(true);
     setError(null);
     setResult(null);
-
-    // Sync to URL so the page is shareable
     router.replace(`${pathname}?q=${encodeURIComponent(q)}`, { scroll: false });
-
     try {
       const res = await fetch(`/api/proxy/track/${encodeURIComponent(q)}`, {
         credentials: "include",
@@ -43,90 +49,54 @@ export function TrackingSearchForm({ initialQuery = "" }: Props) {
     }
   }
 
-  // Auto-fetch when a deep-link query is present
   useEffect(() => {
-    if (initialQuery) {
-      fetchTracking(initialQuery);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (initialQuery) fetchTracking(initialQuery);
   }, [initialQuery]);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    fetchTracking(query);
-  }
-
-  function handleClear() {
-    setQuery("");
-    setResult(null);
-    setError(null);
-    router.replace(pathname, { scroll: false });
-  }
+  const handleCopy = () => {
+    if (result) {
+      navigator.clipboard.writeText(
+        `${window.location.origin}/track?q=${result.trackingNumber}`,
+      );
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-6)",
-      }}
-    >
+    <div className="flex flex-col gap-6 w-full min-w-0">
       {/* Search bar */}
       <form
-        onSubmit={handleSubmit}
-        style={{ display: "flex", gap: "var(--space-3)" }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          fetchTracking(query);
+        }}
+        className="flex flex-col sm:flex-row gap-3 w-full"
       >
-        <div style={{ position: "relative", flex: 1 }}>
+        <div className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 bg-white shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all relative">
+          <Search size={18} className="text-slate-400 shrink-0" />
           <input
             type="text"
             placeholder="e.g. TRK-A1B2C3"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "var(--space-3) var(--space-4)",
-              paddingRight: query ? "var(--space-10)" : "var(--space-4)",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)",
-              background: "var(--color-surface)",
-              color: "var(--color-text)",
-              fontSize: "var(--text-base)",
-              outline: "none",
-              fontFamily: "monospace",
-              transition: "border-color 150ms ease, box-shadow 150ms ease",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = "var(--color-primary)";
-              e.currentTarget.style.boxShadow =
-                "0 0 0 3px var(--color-primary-highlight)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = "var(--color-border)";
-              e.currentTarget.style.boxShadow = "none";
-            }}
+            className="flex-1 bg-transparent outline-none text-base font-mono text-slate-900 placeholder:text-slate-400 placeholder:font-sans w-full min-w-0 pr-8"
             autoFocus={!initialQuery}
           />
-          {/* Clear button inside input */}
           {query && (
             <button
               type="button"
-              onClick={handleClear}
-              aria-label="Clear search"
-              style={{
-                position: "absolute",
-                right: "var(--space-3)",
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "var(--color-text-muted)",
-                display: "flex",
-                alignItems: "center",
-                padding: "var(--space-1)",
-                borderRadius: "var(--radius-full)",
+              onClick={() => {
+                setQuery("");
+                setResult(null);
+                setError(null);
+                router.replace(pathname, { scroll: false });
               }}
+              className="absolute right-3 text-slate-400 hover:text-slate-600 p-1"
             >
               <svg
-                width="14"
-                height="14"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -139,74 +109,22 @@ export function TrackingSearchForm({ initialQuery = "" }: Props) {
             </button>
           )}
         </div>
-
         <button
           type="submit"
           disabled={loading || !query.trim()}
-          style={{
-            padding: "var(--space-3) var(--space-6)",
-            borderRadius: "var(--radius-md)",
-            background: "var(--color-primary)",
-            color: "white",
-            fontWeight: 600,
-            fontSize: "var(--text-sm)",
-            border: "none",
-            cursor: loading ? "wait" : "pointer",
-            opacity: loading || !query.trim() ? 0.6 : 1,
-            transition: "opacity 150ms ease, background 150ms ease",
-            whiteSpace: "nowrap",
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--space-2)",
-          }}
+          className={`px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md shrink-0 sm:w-auto w-full ${loading || !query.trim() ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none" : "bg-[#fd761a] text-white hover:bg-[#ea620c] border border-transparent shadow-[#fd761a]/20 active:scale-[0.98]"}`}
         >
-          {loading ? (
-            <>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                style={{ animation: "spin 0.8s linear infinite" }}
-              >
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-              Tracking…
-            </>
-          ) : (
-            "Track"
-          )}
+          {loading ? "Searching…" : "Track Package"}
         </button>
       </form>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-      {/* Error */}
       {error && (
-        <div
-          role="alert"
-          style={{
-            padding: "var(--space-4)",
-            borderRadius: "var(--radius-md)",
-            background: "var(--color-error-highlight)",
-            color: "var(--color-error)",
-            fontSize: "var(--text-sm)",
-            fontWeight: 500,
-            display: "flex",
-            gap: "var(--space-2)",
-            alignItems: "flex-start",
-          }}
-        >
+        <div className="px-5 py-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium flex items-center gap-3 shadow-sm">
           <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
+            className="w-5 h-5 shrink-0"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
-            style={{ flexShrink: 0, marginTop: "1px" }}
+            viewBox="0 0 24 24"
           >
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
@@ -216,168 +134,77 @@ export function TrackingSearchForm({ initialQuery = "" }: Props) {
         </div>
       )}
 
-      {/* Loading skeleton */}
-      {loading && (
-        <div
-          style={{
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-xl)",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              background: "var(--color-surface-offset)",
-              padding: "var(--space-5) var(--space-6)",
-            }}
-          >
-            <div
-              className="skeleton skeleton-heading"
-              style={{
-                width: "40%",
-                height: "1.25em",
-                borderRadius: "4px",
-                marginBottom: "var(--space-2)",
-              }}
-            />
-            <div
-              className="skeleton skeleton-text"
-              style={{ width: "60%", height: "0.875em", borderRadius: "4px" }}
-            />
-          </div>
-          <div style={{ padding: "var(--space-6)" }}>
-            <div
-              className="skeleton"
-              style={{
-                height: "60px",
-                borderRadius: "var(--radius-md)",
-                marginBottom: "var(--space-6)",
-              }}
-            />
-            <div
-              className="skeleton skeleton-text"
-              style={{
-                width: "100%",
-                height: "1em",
-                borderRadius: "4px",
-                marginBottom: "var(--space-3)",
-              }}
-            />
-            <div
-              className="skeleton skeleton-text"
-              style={{
-                width: "80%",
-                height: "1em",
-                borderRadius: "4px",
-                marginBottom: "var(--space-3)",
-              }}
-            />
-            <div
-              className="skeleton skeleton-text"
-              style={{ width: "65%", height: "1em", borderRadius: "4px" }}
-            />
-          </div>
-          <style>{`
-            @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-            .skeleton {
-              background: linear-gradient(90deg, var(--color-surface-offset) 25%, var(--color-surface-dynamic) 50%, var(--color-surface-offset) 75%);
-              background-size: 200% 100%;
-              animation: shimmer 1.5s ease-in-out infinite;
-            }
-          `}</style>
-        </div>
-      )}
-
       {/* Result card */}
       {result && !loading && (
-        <div
-          style={{
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-xl)",
-            overflow: "hidden",
-          }}
-        >
-          {/* Header strip */}
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-lg shadow-slate-200/50 w-full min-w-0">
           <div
-            style={{
-              background: "var(--color-primary)",
-              padding: "var(--space-5) var(--space-6)",
-              color: "white",
-            }}
+            className="px-6 py-6 sm:px-8 relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg,#1e1b4b,#312e81)" }}
           >
-            <p
-              style={{
-                fontFamily: "monospace",
-                fontWeight: 700,
-                fontSize: "var(--text-lg)",
-                letterSpacing: "0.05em",
-              }}
-            >
-              {result.trackingNumber}
-            </p>
-            <p
-              style={{
-                fontSize: "var(--text-sm)",
-                opacity: 0.85,
-                marginTop: "var(--space-1)",
-              }}
-            >
-              To: <strong>{result.recipient.name}</strong>
-            </p>
-            <p
-              style={{
-                fontSize: "var(--text-xs)",
-                opacity: 0.7,
-                marginTop: "var(--space-1)",
-              }}
-            >
-              {result.recipient.address}
-            </p>
+            <div className="absolute right-0 top-0 opacity-10 pointer-events-none">
+              <Package
+                size={120}
+                className="transform translate-x-4 -translate-y-4 text-white"
+              />
+            </div>
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="flex flex-col gap-3 min-w-0">
+                <div className="flex items-center gap-3">
+                  <span className="px-2.5 py-1 bg-white/10 border border-white/20 rounded text-xs font-bold text-indigo-200 uppercase tracking-widest">
+                    Tracking ID
+                  </span>
+                  <p className="font-mono font-bold text-xl sm:text-2xl text-white tracking-wide truncate">
+                    {result.trackingNumber}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5 mt-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <User size={14} className="text-indigo-300 shrink-0" />
+                    <p className="text-sm text-indigo-200 truncate">
+                      Recipient:{" "}
+                      <strong className="text-white ml-1">
+                        {result.recipient.name}
+                      </strong>
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2 min-w-0">
+                    <MapPin
+                      size={14}
+                      className="text-indigo-400 mt-0.5 shrink-0"
+                    />
+                    <p className="text-sm text-indigo-300 break-words leading-relaxed">
+                      {result.recipient.address}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleCopy}
+                className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-xs font-semibold text-white transition-colors"
+              >
+                {copied ? (
+                  <CheckCircle2 size={14} className="text-green-400" />
+                ) : (
+                  <Copy size={14} />
+                )}
+                {copied ? "Copied Link" : "Copy Link"}
+              </button>
+            </div>
           </div>
 
-          {/* Progress */}
-          <div
-            style={{
-              padding: "var(--space-6)",
-              borderBottom: "1px solid var(--color-border)",
-            }}
-          >
-            <TrackingProgressBar currentStatus={result.currentStatus} />
+          <div className="px-6 py-8 sm:px-8 border-b border-slate-100 bg-white w-full overflow-x-auto">
+            <div className="min-w-[500px] w-full">
+              <TrackingProgressBar currentStatus={result.currentStatus} />
+            </div>
           </div>
 
-          {/* Meta row */}
-          <div
-            style={{
-              padding: "var(--space-4) var(--space-6)",
-              display: "flex",
-              gap: "var(--space-6)",
-              flexWrap: "wrap",
-              borderBottom: "1px solid var(--color-border)",
-              background: "var(--color-surface-offset)",
-            }}
-          >
+          <div className="px-6 py-5 sm:px-8 flex gap-8 sm:gap-12 flex-wrap bg-slate-50 border-b border-slate-100">
             {result.estimatedDelivery && (
-              <div>
-                <p
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[11px] text-slate-500 uppercase tracking-widest font-bold">
                   Est. Delivery
                 </p>
-                <p
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    marginTop: "var(--space-1)",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
+                <p className="text-sm font-semibold text-slate-900">
                   {new Date(result.estimatedDelivery).toLocaleDateString(
                     undefined,
                     { weekday: "short", month: "short", day: "numeric" },
@@ -386,81 +213,25 @@ export function TrackingSearchForm({ initialQuery = "" }: Props) {
               </div>
             )}
             {result.assignedAgent && (
-              <div>
-                <p
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Delivery Agent
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[11px] text-slate-500 uppercase tracking-widest font-bold">
+                  Assigned Agent
                 </p>
-                <p
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    marginTop: "var(--space-1)",
-                  }}
-                >
+                <p className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#fd761a]" />
                   {result.assignedAgent.name}
                 </p>
               </div>
             )}
-            {/* Share button */}
-            <div style={{ marginLeft: "auto" }}>
-              <button
-                type="button"
-                onClick={() => {
-                  const url = `${window.location.origin}/track?q=${encodeURIComponent(result.trackingNumber)}`;
-                  navigator.clipboard?.writeText(url);
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-2)",
-                  fontSize: "var(--text-xs)",
-                  color: "var(--color-text-muted)",
-                  padding: "var(--space-1) var(--space-2)",
-                  borderRadius: "var(--radius-sm)",
-                  border: "1px solid var(--color-border)",
-                  background: "transparent",
-                  cursor: "pointer",
-                }}
-                title="Copy tracking link"
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                  <polyline points="16 6 12 2 8 6" />
-                  <line x1="12" y1="2" x2="12" y2="15" />
-                </svg>
-                Share
-              </button>
-            </div>
           </div>
 
-          {/* History */}
-          <div style={{ padding: "var(--space-6)" }}>
-            <p
-              style={{
-                fontSize: "var(--text-sm)",
-                fontWeight: 600,
-                marginBottom: "var(--space-4)",
-                color: "var(--color-text-muted)",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              Tracking History
-            </p>
+          <div className="px-6 py-6 sm:px-8 bg-white">
+            <div className="flex items-center gap-2.5 mb-6 border-b border-slate-100 pb-4">
+              <Clock size={16} className="text-slate-400" />
+              <p className="text-sm font-bold text-slate-700 uppercase tracking-widest">
+                Detailed Timeline
+              </p>
+            </div>
             <TrackingHistory history={result.history} />
           </div>
         </div>

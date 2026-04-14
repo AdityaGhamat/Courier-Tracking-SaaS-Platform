@@ -18,7 +18,8 @@ export function Sidebar() {
 
   return (
     <aside
-      className="hidden lg:flex flex-col h-screen shrink-0 transition-all duration-300 relative z-10"
+      /* CHANGED: h-screen to h-full */
+      className="hidden lg:flex flex-col h-full shrink-0 transition-all duration-300 relative z-20 shadow-xl"
       style={{
         width: collapsed ? "72px" : "240px",
         background: "linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)",
@@ -102,7 +103,7 @@ export function Sidebar() {
                   key={item.href}
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group ${
-                    isActive ? "nav-active" : "hover:bg-white/8"
+                    isActive ? "nav-active" : "hover:bg-white/5"
                   }`}
                   style={isActive ? {} : { color: "rgba(255,255,255,0.55)" }}
                   title={collapsed ? item.label : undefined}

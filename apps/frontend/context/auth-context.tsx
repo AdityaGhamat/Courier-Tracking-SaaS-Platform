@@ -27,7 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount: hit /api/proxy/auth/me to rehydrate user from existing session_key cookie
   useEffect(() => {
     let cancelled = false;
     (async () => {

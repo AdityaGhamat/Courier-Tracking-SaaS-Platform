@@ -211,6 +211,23 @@ class AuthService {
 
     return { tokens, user: safeSuperAdmin };
   }
+
+  async getProfile(id: string) {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, id),
+      columns: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        workspaceId: true,
+      },
+    });
+    if (!user) {
+      throw new BadRequestError("User not found");
+    }
+    return user;
+  }
 }
 
 export const authService = new AuthService();

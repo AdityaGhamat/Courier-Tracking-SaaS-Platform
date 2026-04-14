@@ -3,11 +3,10 @@
 import type { TrackingHistoryEvent } from "@/types/tracking.types";
 import type { ShipmentStatus } from "@/types/shipment.types";
 
-// SVG icon per status — no emojis
 const StatusIcon = ({ status }: { status: ShipmentStatus }) => {
   const p = {
-    width: 15,
-    height: 15,
+    width: 16,
+    height: 16,
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",
@@ -65,6 +64,7 @@ const StatusIcon = ({ status }: { status: ShipmentStatus }) => {
         </svg>
       );
     case "failed":
+    case "exception":
       return (
         <svg {...p}>
           <circle cx="12" cy="12" r="10" />
@@ -86,14 +86,6 @@ const StatusIcon = ({ status }: { status: ShipmentStatus }) => {
           <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
         </svg>
       );
-    case "exception":
-      return (
-        <svg {...p}>
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
-      );
     default:
       return (
         <svg {...p}>
@@ -103,17 +95,17 @@ const StatusIcon = ({ status }: { status: ShipmentStatus }) => {
   }
 };
 
-const EVENT_META: Record<ShipmentStatus, { color: string }> = {
-  label_created: { color: "var(--color-text-muted)" },
-  picked_up: { color: "var(--color-blue)" },
-  at_sorting_facility: { color: "var(--color-gold)" },
-  in_transit: { color: "var(--color-orange)" },
-  out_for_delivery: { color: "var(--color-primary)" },
-  delivered: { color: "var(--color-success)" },
-  failed: { color: "var(--color-error)" },
-  retry: { color: "var(--color-warning)" },
-  returned: { color: "var(--color-warning)" },
-  exception: { color: "var(--color-error)" },
+const EVENT_META: Record<ShipmentStatus, string> = {
+  label_created: "text-slate-500 border-slate-200 bg-slate-50",
+  picked_up: "text-indigo-600 border-indigo-200 bg-indigo-50",
+  at_sorting_facility: "text-yellow-600 border-yellow-200 bg-yellow-50",
+  in_transit: "text-orange-500 border-orange-200 bg-orange-50",
+  out_for_delivery: "text-[#fd761a] border-[#fd761a]/30 bg-[#fd761a]/10",
+  delivered: "text-green-600 border-green-200 bg-green-50",
+  failed: "text-red-600 border-red-200 bg-red-50",
+  retry: "text-yellow-600 border-yellow-200 bg-yellow-50",
+  returned: "text-yellow-600 border-yellow-200 bg-yellow-50",
+  exception: "text-red-600 border-red-200 bg-red-50",
 };
 
 const STATUS_LABELS: Record<ShipmentStatus, string> = {
@@ -129,21 +121,15 @@ const STATUS_LABELS: Record<ShipmentStatus, string> = {
   exception: "Exception",
 };
 
-interface Props {
+export function TrackingHistory({
+  history,
+}: {
   history: TrackingHistoryEvent[];
-}
-
-export function TrackingHistory({ history }: Props) {
+}) {
   if (!history || history.length === 0) {
     return (
-      <p
-        style={{
-          fontSize: "var(--text-sm)",
-          color: "var(--color-text-muted)",
-          padding: "var(--space-4) 0",
-        }}
-      >
-        No tracking events yet.
+      <p className="text-sm text-slate-500 py-4 italic">
+        No tracking events recorded yet.
       </p>
     );
   }
@@ -153,131 +139,70 @@ export function TrackingHistory({ history }: Props) {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column" }}>
+    <div className="flex flex-col w-full">
       {sorted.map((event, idx) => {
-        const meta = EVENT_META[event.status] ?? {
-          color: "var(--color-text-muted)",
-        };
+        const metaClass =
+          EVENT_META[event.status] ??
+          "text-slate-500 border-slate-200 bg-slate-50";
         const isLast = idx === sorted.length - 1;
 
         return (
           <div
             key={`${event.status}-${event.timestamp}`}
-            style={{ display: "flex", gap: "var(--space-4)" }}
+            className="flex gap-5 w-full"
           >
-            {/* Spine */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                width: "32px",
-                flexShrink: 0,
-              }}
-            >
+            {/* Spine Container */}
+            <div className="flex flex-col items-center w-8 shrink-0">
               <div
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "var(--radius-full)",
-                  background: "var(--color-surface-offset)",
-                  border: `2px solid ${meta.color}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: meta.color,
-                  flexShrink: 0,
-                }}
+                className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 shadow-sm ${metaClass}`}
               >
                 <StatusIcon status={event.status} />
               </div>
               {!isLast && (
-                <div
-                  style={{
-                    width: "2px",
-                    flexGrow: 1,
-                    minHeight: "var(--space-8)",
-                    background: "var(--color-divider)",
-                    margin: "var(--space-1) 0",
-                  }}
-                />
+                <div className="w-0.5 grow min-h-[32px] bg-slate-200 my-2 rounded-full" />
               )}
             </div>
 
-            {/* Content */}
-            <div
-              style={{
-                paddingBottom: isLast ? "0" : "var(--space-6)",
-                paddingTop: "var(--space-1)",
-                flex: 1,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: "var(--space-2)",
-                  flexWrap: "wrap",
-                }}
-              >
+            {/* Content Container */}
+            <div className={`flex-1 min-w-0 pt-1 ${isLast ? "pb-2" : "pb-8"}`}>
+              <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 flex-wrap mb-1.5">
                 <span
-                  style={{
-                    fontWeight: 600,
-                    fontSize: "var(--text-sm)",
-                    color: meta.color,
-                  }}
+                  className={`font-bold text-[15px] ${metaClass.split(" ")[0]}`}
                 >
                   {STATUS_LABELS[event.status] ?? event.status}
                 </span>
-                <span
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--color-text-faint)",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {new Date(event.timestamp).toLocaleString()}
+                <span className="text-[13px] text-slate-500 font-medium tabular-nums">
+                  {new Date(event.timestamp).toLocaleString(undefined, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
                 </span>
               </div>
 
               {event.location && (
-                <p
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    color: "var(--color-text-muted)",
-                    marginTop: "var(--space-1)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-1)",
-                  }}
-                >
-                  {/* Pin icon — replaces 📍 */}
+                <p className="text-sm text-slate-500 flex items-start gap-1.5 mt-2">
                   <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
+                    className="w-4 h-4 text-slate-400 mt-0.5 shrink-0"
                     fill="none"
                     stroke="currentColor"
+                    viewBox="0 0 24 24"
                     strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{ flexShrink: 0 }}
                   >
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                    />
                     <circle cx="12" cy="10" r="3" />
                   </svg>
-                  {event.location}
+                  <span className="break-words leading-snug">
+                    {event.location}
+                  </span>
                 </p>
               )}
 
               {event.description && (
-                <p
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    color: "var(--color-text)",
-                    marginTop: "var(--space-1)",
-                  }}
-                >
+                <p className="text-sm text-slate-700 mt-2 font-medium break-words leading-relaxed border-l-2 border-slate-200 pl-3">
                   {event.description}
                 </p>
               )}

@@ -28,16 +28,23 @@ const TERMINAL_STATUSES: ShipmentStatus[] = [
 
 const TERMINAL_META: Record<
   string,
-  { label: string; color: string; bg: string; icon: React.ReactNode }
+  {
+    label: string;
+    colorClass: string;
+    bgClass: string;
+    borderClass: string;
+    icon: React.ReactNode;
+  }
 > = {
   failed: {
     label: "Delivery Failed",
-    color: "var(--color-error)",
-    bg: "var(--color-error-highlight)",
+    colorClass: "text-red-600",
+    bgClass: "bg-red-50",
+    borderClass: "border-red-200",
     icon: (
       <svg
-        width="20"
-        height="20"
+        width="24"
+        height="24"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -52,12 +59,13 @@ const TERMINAL_META: Record<
   },
   returned: {
     label: "Returned to Sender",
-    color: "var(--color-warning)",
-    bg: "var(--color-warning-highlight)",
+    colorClass: "text-yellow-600",
+    bgClass: "bg-yellow-50",
+    borderClass: "border-yellow-200",
     icon: (
       <svg
-        width="20"
-        height="20"
+        width="24"
+        height="24"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -72,12 +80,13 @@ const TERMINAL_META: Record<
   },
   retry: {
     label: "Retry Scheduled",
-    color: "var(--color-warning)",
-    bg: "var(--color-warning-highlight)",
+    colorClass: "text-yellow-600",
+    bgClass: "bg-yellow-50",
+    borderClass: "border-yellow-200",
     icon: (
       <svg
-        width="20"
-        height="20"
+        width="24"
+        height="24"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -92,12 +101,13 @@ const TERMINAL_META: Record<
   },
   exception: {
     label: "Shipment Exception",
-    color: "var(--color-error)",
-    bg: "var(--color-error-highlight)",
+    colorClass: "text-red-600",
+    bgClass: "bg-red-50",
+    borderClass: "border-red-200",
     icon: (
       <svg
-        width="20"
-        height="20"
+        width="24"
+        height="24"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -113,47 +123,26 @@ const TERMINAL_META: Record<
   },
 };
 
-interface Props {
+export function TrackingProgressBar({
+  currentStatus,
+}: {
   currentStatus: ShipmentStatus;
-}
-
-export function TrackingProgressBar({ currentStatus }: Props) {
+}) {
   const isTerminal = TERMINAL_STATUSES.includes(currentStatus);
 
   if (isTerminal) {
     const meta = TERMINAL_META[currentStatus] ?? TERMINAL_META.exception;
     return (
       <div
-        style={{
-          padding: "var(--space-4) var(--space-5)",
-          borderRadius: "var(--radius-lg)",
-          background: meta.bg,
-          border: `1px solid ${meta.color}`,
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--space-3)",
-          color: meta.color,
-        }}
+        className={`p-5 rounded-xl border flex items-center gap-4 shadow-sm ${meta.bgClass} ${meta.borderClass}`}
       >
-        <div style={{ flexShrink: 0 }}>{meta.icon}</div>
-        <div>
-          <p
-            style={{
-              fontWeight: 700,
-              fontSize: "var(--text-base)",
-              color: meta.color,
-            }}
-          >
+        <div className={`shrink-0 ${meta.colorClass}`}>{meta.icon}</div>
+        <div className="flex flex-col gap-1">
+          <p className={`font-bold text-base ${meta.colorClass}`}>
             {meta.label}
           </p>
-          <p
-            style={{
-              fontSize: "var(--text-sm)",
-              color: "var(--color-text-muted)",
-              marginTop: "var(--space-1)",
-            }}
-          >
-            Please contact support for further assistance.
+          <p className="text-sm text-slate-600">
+            Please contact support or check history for details.
           </p>
         </div>
       </div>
@@ -167,119 +156,60 @@ export function TrackingProgressBar({ currentStatus }: Props) {
     currentIdx < 0 ? 0 : (currentIdx / (PROGRESS_STEPS.length - 1)) * 100;
 
   return (
-    <div>
-      {/*
-        Layout strategy:
-        1. Render the connector bar FIRST in DOM, absolutely positioned
-           in the middle of the dot row height (14px = half of 28px dot).
-        2. Render dots on top with position:relative + z-index:1.
-        No negative margins — no mobile breakage.
-      */}
-      <div style={{ position: "relative" }}>
-        {/* Track (background) */}
-        <div
-          style={{
-            position: "absolute",
-            top: "13px" /* half of 28px dot height */,
-            left: "calc(100% / (2 * 6))" /* center of first dot */,
-            right: "calc(100% / (2 * 6))" /* center of last dot */,
-            height: "4px",
-            background: "var(--color-surface-offset)",
-            borderRadius: "var(--radius-full)",
-            zIndex: 0,
-          }}
-        />
-        {/* Fill */}
-        <div
-          style={{
-            position: "absolute",
-            top: "13px",
-            left: "calc(100% / (2 * 6))",
-            height: "4px",
-            width: `calc((100% - 100% / (2 * 6) * 2) * ${progressPct / 100})`,
-            background: "var(--color-primary)",
-            borderRadius: "var(--radius-full)",
-            zIndex: 0,
-            transition: "width 400ms cubic-bezier(0.16, 1, 0.3, 1)",
-          }}
-        />
+    <div className="relative w-full pt-2 pb-4">
+      {/* Track Base */}
+      <div className="absolute top-6 left-[8.33%] right-[8.33%] h-1.5 bg-slate-200 rounded-full z-0" />
 
-        {/* Dots row */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${PROGRESS_STEPS.length}, 1fr)`,
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          {PROGRESS_STEPS.map((step, idx) => {
-            const done = idx <= currentIdx;
-            const active = idx === currentIdx;
-            return (
+      {/* Track Fill */}
+      <div
+        className="absolute top-6 left-[8.33%] h-1.5 bg-[#fd761a] rounded-full z-0 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(253,118,26,0.3)]"
+        style={{ width: `calc((100% - 16.66%) * ${progressPct / 100})` }}
+      />
+
+      {/* Dots Row */}
+      <div className="grid grid-cols-6 relative z-10 w-full">
+        {PROGRESS_STEPS.map((step, idx) => {
+          const done = idx <= currentIdx;
+          const active = idx === currentIdx;
+
+          return (
+            <div key={step.status} className="flex flex-col items-center gap-3">
               <div
-                key={step.status}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "var(--space-2)",
-                }}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
+                  done
+                    ? "bg-[#fd761a] border-2 border-[#fd761a] shadow-sm"
+                    : "bg-white border-2 border-slate-300"
+                } ${active ? "ring-4 ring-[#fd761a]/20 shadow-[0_0_15px_rgba(253,118,26,0.3)] scale-110" : ""}`}
               >
-                {/* Dot */}
-                <div
-                  style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "var(--radius-full)",
-                    background: done
-                      ? "var(--color-primary)"
-                      : "var(--color-bg)",
-                    border: done
-                      ? "3px solid var(--color-primary)"
-                      : "2px solid var(--color-border)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "all 200ms ease",
-                    flexShrink: 0,
-                    boxShadow: active
-                      ? "0 0 0 4px var(--color-primary-highlight)"
-                      : "none",
-                  }}
-                >
-                  {done && (
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                      <path
-                        d="M2 6l3 3 5-5"
-                        stroke="white"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                </div>
-                {/* Label */}
-                <span
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    fontWeight: active ? 700 : done ? 500 : 400,
-                    color: active
-                      ? "var(--color-primary)"
-                      : done
-                        ? "var(--color-text)"
-                        : "var(--color-text-faint)",
-                    textAlign: "center",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {step.short}
-                </span>
+                {done && (
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
               </div>
-            );
-          })}
-        </div>
+              <span
+                className={`text-[11px] sm:text-xs text-center leading-tight transition-colors ${
+                  active
+                    ? "font-bold text-[#fd761a]"
+                    : done
+                      ? "font-semibold text-slate-800"
+                      : "font-medium text-slate-400"
+                }`}
+              >
+                {step.short}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

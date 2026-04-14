@@ -6,12 +6,11 @@ import type { ReactNode } from "react";
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
-      <div className="flex min-h-screen bg-surface">
+      <div className="flex h-screen w-full overflow-hidden bg-slate-50">
         {/* Desktop sidebar — hidden on mobile */}
         <Sidebar />
 
-        {/* Main content column */}
-        <div className="flex flex-1 flex-col min-w-0">
+        <div className="flex flex-1 flex-col min-w-0 overflow-y-auto relative">
           {/* Mobile top nav — hidden on desktop */}
           <MobileNav />
 
