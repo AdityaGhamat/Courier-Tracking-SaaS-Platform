@@ -7,7 +7,7 @@ import type { ShipmentStatus } from "@/types/shipment.types";
 
 interface Props {
   shipmentId: string;
-  currentStatus: ShipmentStatus; // ← typed correctly now
+  currentStatus: ShipmentStatus;
   currentAgentId?: string | null;
 }
 
@@ -17,13 +17,12 @@ export function ShipmentActions({
   currentAgentId,
 }: Props) {
   const router = useRouter();
-
   function refresh() {
     router.refresh();
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
       <UpdateStatusDialog
         shipmentId={shipmentId}
         currentStatus={currentStatus}

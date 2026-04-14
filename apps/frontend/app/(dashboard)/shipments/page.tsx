@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { PackageSearch } from "lucide-react";
 import { serverFetch } from "@/lib/server-api";
+import { getSessionUser } from "@/lib/session";
 import { CreateShipmentDialog } from "@/components/shipments/create-shipment-dialog";
 import { ShipmentActions } from "@/components/shipments/shipment-actions";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -13,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import type { Shipment } from "@/types/shipment.types";
 
-const STATUS_OPTIONS: { label: string; value: string }[] = [
+const STATUS_OPTIONS = [
   { label: "All", value: "" },
   { label: "Label Created", value: "label_created" },
   { label: "Picked Up", value: "picked_up" },
@@ -38,18 +40,41 @@ interface ListResponse {
   };
 }
 
+// Smart pagination: always show first, last, current ±1, with ellipsis
+function buildPageRange(current: number, total: number): (number | "...")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | "...")[] = [1];
+  if (current > 3) pages.push("...");
+  for (
+    let p = Math.max(2, current - 1);
+    p <= Math.min(total - 1, current + 1);
+    p++
+  ) {
+    pages.push(p);
+  }
+  if (current < total - 2) pages.push("...");
+  pages.push(total);
+  return pages;
+}
+
 export default async function ShipmentsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
   const status = params.status ?? "";
+  const user = await getSessionUser();
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
   let result: ListResponse["data"] | null = null;
   let fetchError: string | null = null;
 
   try {
-    const res = await serverFetch<ListResponse>(
-      `shipments?page=${page}&limit=15${status ? `&status=${status}` : ""}`,
-    );
+    // customers see only their own shipments
+    const endpoint =
+      user?.role === "customer"
+        ? `shipments/my/shipments?page=${page}&limit=15${status ? `&status=${status}` : ""}`
+        : `shipments?page=${page}&limit=15${status ? `&status=${status}` : ""}`;
+
+    const res = await serverFetch<ListResponse>(endpoint);
     result = res.data;
   } catch (err: any) {
     fetchError = err?.message ?? "Failed to load shipments";
@@ -57,21 +82,27 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
 
   const shipments = result?.shipments ?? [];
   const totalPages = result?.totalPages ?? 1;
+  const pageRange = buildPageRange(page, totalPages);
 
   return (
     <div className="flex flex-col gap-6 w-full min-w-0">
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-4 w-full">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Shipments</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {result?.total ?? 0} total shipments
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+            <PackageSearch size={18} className="text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Shipments</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {result?.total ?? 0} total · page {page} of {totalPages}
+            </p>
+          </div>
         </div>
-        <CreateShipmentDialog />
+        {isAdmin && <CreateShipmentDialog />}
       </div>
 
-      {/* Status filters */}
+      {/* ── Status filters ─────────────────────────────────── */}
       <div className="flex gap-2 flex-wrap w-full">
         {STATUS_OPTIONS.map((opt) => {
           const isActive = status === opt.value;
@@ -81,10 +112,10 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
               key={opt.value}
               href={href}
               className={[
-                "px-3 py-1 rounded-full text-sm border transition-all duration-150 no-underline",
+                "px-3 py-1.5 rounded-full text-xs font-semibold border transition-all no-underline",
                 isActive
-                  ? "font-semibold bg-[#fd761a] text-white border-[#fd761a]"
-                  : "font-normal bg-muted text-muted-foreground border-border hover:bg-accent",
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-muted text-muted-foreground border-border hover:bg-accent hover:text-foreground",
               ].join(" ")}
             >
               {opt.label}
@@ -93,67 +124,87 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
         })}
       </div>
 
-      {/* Error banner */}
+      {/* ── Error ──────────────────────────────────────────── */}
       {fetchError && (
-        <div className="p-4 rounded-md bg-destructive/10 text-destructive text-sm border border-destructive w-full">
-          ⚠ {fetchError}
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-destructive text-sm border border-destructive/20">
+          <span className="text-base">⚠</span>
+          <span>{fetchError}</span>
         </div>
       )}
 
-      {/* Table */}
-      <div className="bg-card rounded-lg border border-border w-full overflow-hidden flex flex-col">
+      {/* ── Table ──────────────────────────────────────────── */}
+      <div className="bg-card rounded-xl border border-border shadow-sm w-full overflow-hidden">
         {shipments.length === 0 && !fetchError ? (
-          <div className="p-16 text-center text-muted-foreground w-full">
-            <div className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z" />
-                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-                <line x1="12" y1="12" x2="12" y2="12" />
-              </svg>
+          <div className="py-20 flex flex-col items-center gap-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+              <PackageSearch size={24} className="text-muted-foreground/40" />
             </div>
-            <p className="font-semibold text-foreground">No shipments yet</p>
-            <p className="text-sm mt-2">
-              Create your first shipment to get started.
-            </p>
+            <div>
+              <p className="font-semibold text-foreground">No shipments yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {status
+                  ? `No shipments with status "${status}".`
+                  : "Create your first shipment to get started."}
+              </p>
+            </div>
+            {isAdmin && <CreateShipmentDialog />}
           </div>
         ) : (
           <div className="w-full overflow-x-auto">
-            <Table className="w-full min-w-[900px]">
+            <Table className="w-full min-w-[860px]">
               <TableHeader>
-                <TableRow>
-                  <TableHead>Tracking #</TableHead>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Weight</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>View</TableHead>
-                  <TableHead>Actions</TableHead>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="text-[11px] uppercase tracking-wider font-bold w-[160px]">
+                    Tracking #
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wider font-bold">
+                    Recipient
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wider font-bold">
+                    Address
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wider font-bold">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wider font-bold w-[80px]">
+                    Weight
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wider font-bold w-[110px]">
+                    Created
+                  </TableHead>
+                  {isAdmin && (
+                    <TableHead className="text-[11px] uppercase tracking-wider font-bold w-[150px]">
+                      Actions
+                    </TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {shipments.map((s) => (
-                  <TableRow key={s.id}>
+                  <TableRow
+                    key={s.id}
+                    className="hover:bg-muted/30 transition-colors"
+                  >
                     <TableCell>
-                      <span className="font-mono text-sm font-semibold">
+                      <Link
+                        href={`/shipments/${s.id}`}
+                        className="font-mono text-sm font-semibold text-primary hover:underline no-underline"
+                      >
                         {s.trackingNumber}
-                      </span>
+                      </Link>
                     </TableCell>
                     <TableCell>
-                      <p className="font-medium text-sm">{s.recipientName}</p>
+                      <p className="font-medium text-sm text-foreground">
+                        {s.recipientName}
+                      </p>
                       {s.recipientPhone && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {s.recipientPhone}
                         </p>
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground max-w-[180px] block overflow-hidden text-ellipsis whitespace-nowrap">
+                      <span className="text-sm text-muted-foreground max-w-[200px] block truncate">
                         {s.recipientAddress}
                       </span>
                     </TableCell>
@@ -161,31 +212,28 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
                       <StatusBadge status={s.status} />
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground tabular-nums">
+                      <span className="text-sm tabular-nums text-muted-foreground">
                         {s.weight ? `${s.weight} kg` : "—"}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground tabular-nums">
-                        {new Date(s.createdAt).toLocaleDateString()}
+                      <span className="text-xs tabular-nums text-muted-foreground whitespace-nowrap">
+                        {new Date(s.createdAt).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/shipments/${s.id}`}
-                        className="text-sm text-[#fd761a] no-underline font-medium hover:underline"
-                      >
-                        View →
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {/* ← NEW: assign agent + update status buttons */}
-                      <ShipmentActions
-                        shipmentId={s.id}
-                        currentStatus={s.status}
-                        currentAgentId={(s as any).agentId ?? null}
-                      />
-                    </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <ShipmentActions
+                          shipmentId={s.id}
+                          currentStatus={s.status}
+                          currentAgentId={(s as any).driverId ?? null}
+                        />
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -194,23 +242,60 @@ export default async function ShipmentsPage({ searchParams }: PageProps) {
         )}
       </div>
 
-      {/* Pagination */}
+      {/* ── Pagination ─────────────────────────────────────── */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2 w-full">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <Link
-              key={p}
-              href={`/shipments?page=${p}${status ? `&status=${status}` : ""}`}
-              className={[
-                "w-9 h-9 flex items-center justify-center rounded-md text-sm border border-border tabular-nums no-underline transition-colors",
-                p === page
-                  ? "font-bold bg-[#fd761a] text-white border-[#fd761a]"
-                  : "font-normal bg-muted text-foreground hover:bg-accent",
-              ].join(" ")}
-            >
-              {p}
-            </Link>
-          ))}
+        <div className="flex justify-center items-center gap-1.5 w-full">
+          {/* Prev */}
+          <Link
+            href={`/shipments?page=${Math.max(1, page - 1)}${status ? `&status=${status}` : ""}`}
+            aria-disabled={page === 1}
+            className={[
+              "px-3 py-2 rounded-lg text-sm font-medium border transition-colors no-underline",
+              page === 1
+                ? "pointer-events-none opacity-30 bg-muted border-border text-muted-foreground"
+                : "bg-muted border-border text-foreground hover:bg-accent",
+            ].join(" ")}
+          >
+            ‹ Prev
+          </Link>
+
+          {pageRange.map((p, i) =>
+            p === "..." ? (
+              <span
+                key={`ellipsis-${i}`}
+                className="w-9 h-9 flex items-center justify-center text-muted-foreground text-sm"
+              >
+                …
+              </span>
+            ) : (
+              <Link
+                key={p}
+                href={`/shipments?page=${p}${status ? `&status=${status}` : ""}`}
+                className={[
+                  "w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium border no-underline transition-colors tabular-nums",
+                  p === page
+                    ? "bg-primary text-primary-foreground border-primary font-bold shadow-sm"
+                    : "bg-muted border-border text-foreground hover:bg-accent",
+                ].join(" ")}
+              >
+                {p}
+              </Link>
+            ),
+          )}
+
+          {/* Next */}
+          <Link
+            href={`/shipments?page=${Math.min(totalPages, page + 1)}${status ? `&status=${status}` : ""}`}
+            aria-disabled={page === totalPages}
+            className={[
+              "px-3 py-2 rounded-lg text-sm font-medium border transition-colors no-underline",
+              page === totalPages
+                ? "pointer-events-none opacity-30 bg-muted border-border text-muted-foreground"
+                : "bg-muted border-border text-foreground hover:bg-accent",
+            ].join(" ")}
+          >
+            Next ›
+          </Link>
         </div>
       )}
     </div>

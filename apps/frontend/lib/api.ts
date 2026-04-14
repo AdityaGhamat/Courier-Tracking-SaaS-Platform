@@ -227,3 +227,43 @@ export const agentsApi = {
   create: (body: unknown) =>
     request("auth/register-agent", { method: "POST", body }),
 };
+
+export const superAdminApi = {
+  // Tenants
+  listTenants: () => request("super-admin/tenants"),
+  getTenantById: (id: string) => request(`super-admin/tenants/${id}`),
+  deleteTenant: (id: string) =>
+    request(`super-admin/tenants/${id}`, { method: "DELETE" }),
+  getTenantSubscription: (id: string) =>
+    request(`super-admin/tenants/${id}/subscription`),
+
+  // Plans
+  listPlans: () => request("super-admin/plans"),
+  createPlan: (body: {
+    name: string;
+    description?: string;
+    price: string;
+    maxShipments: number;
+    maxAgents: number;
+  }) => request("super-admin/plans", { method: "POST", body }),
+  updatePlan: (
+    id: string,
+    body: {
+      name?: string;
+      description?: string;
+      price?: string;
+      maxShipments?: number;
+      maxAgents?: number;
+      isActive?: boolean;
+    },
+  ) => request(`super-admin/plans/${id}`, { method: "PATCH", body }),
+  deletePlan: (id: string) =>
+    request(`super-admin/plans/${id}`, { method: "DELETE" }),
+
+  // Assign plan to tenant
+  assignPlan: (body: {
+    workspaceId: string;
+    planId: string;
+    endDate?: string;
+  }) => request("super-admin/subscriptions/assign", { method: "POST", body }),
+};
