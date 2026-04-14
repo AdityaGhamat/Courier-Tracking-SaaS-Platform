@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { agentsApi } from "@/lib/api";
 import { CreateAgentDialog } from "@/components/agents/create-agent-dialog";
 import { Loader2, Users } from "lucide-react";
+import Link from "next/link";
 
 interface Agent {
   id: string;
@@ -115,31 +116,75 @@ export default function AgentsPage() {
           {agents.map((agent) => (
             <div
               key={agent.id}
-              className="bg-white border border-slate-200 rounded-xl p-5 flex items-start gap-4 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all"
+              className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
             >
-              <AgentInitial name={agent.name} />
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-sm text-slate-800 truncate">
-                  {agent.name}
-                </p>
-                <p className="text-xs text-slate-500 truncate">{agent.email}</p>
-                {agent.phone && (
-                  <p className="text-xs text-slate-400 mt-0.5">{agent.phone}</p>
-                )}
-                {agent.createdAt && (
-                  <p className="text-xs text-slate-300 mt-1">
-                    Joined{" "}
-                    {new Date(agent.createdAt).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+              {/* Top row: avatar + info + badge */}
+              <div className="flex items-start gap-4">
+                <AgentInitial name={agent.name} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm text-slate-800 truncate">
+                    {agent.name}
                   </p>
-                )}
+                  <p className="text-xs text-slate-500 truncate">
+                    {agent.email}
+                  </p>
+                  {agent.phone && (
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {agent.phone}
+                    </p>
+                  )}
+                  {agent.createdAt && (
+                    <p className="text-xs text-slate-300 mt-1">
+                      Joined{" "}
+                      {new Date(agent.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                  )}
+                </div>
+                <span className="shrink-0 inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-600 uppercase tracking-wide">
+                  Active
+                </span>
               </div>
-              <span className="shrink-0 inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-600 uppercase tracking-wide">
-                Active
-              </span>
+
+              {/* Action buttons */}
+              <div className="flex gap-2 border-t border-slate-100 pt-3">
+                <Link
+                  href={`/agents/${agent.id}/route`}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-[#fd761a]/10 px-3 py-2 text-xs font-bold text-[#fd761a] hover:bg-[#fd761a]/20 transition-colors no-underline"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <polygon points="3 11 22 2 13 21 11 13 3 11" />
+                  </svg>
+                  Optimize Route
+                </Link>
+                <Link
+                  href={`/shipments?agentId=${agent.id}`}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors no-underline"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z" />
+                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                  </svg>
+                  Shipments
+                </Link>
+              </div>
             </div>
           ))}
         </div>
