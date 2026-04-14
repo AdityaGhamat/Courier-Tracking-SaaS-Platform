@@ -1,21 +1,17 @@
-import { serverFetch } from "@/lib/server-api";
+"use client";
+
+import { useState, useEffect } from "react";
+import { agentsApi } from "@/lib/api";
 import { CreateAgentDialog } from "@/components/agents/create-agent-dialog";
+import { Loader2, Users } from "lucide-react";
 
 interface Agent {
   id: string;
   name: string;
   email: string;
   phone?: string;
-  assignedShipments?: number;
-}
-
-async function getAgents(): Promise<Agent[]> {
-  try {
-    const res = await serverFetch<{ data: Agent[] }>("agents");
-    return res.data ?? [];
-  } catch {
-    return [];
-  }
+  role: string;
+  createdAt?: string;
 }
 
 function AgentInitial({ name }: { name: string }) {
@@ -36,11 +32,34 @@ function AgentInitial({ name }: { name: string }) {
   );
 }
 
-export default async function AgentsPage() {
-  const agents = await getAgents();
-  console.log(`agents : ${agents}`);
+export default function AgentsPage() {
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  function loadAgents() {
+    setLoading(true);
+    setError("");
+    agentsApi
+      .list()
+      .then((res: any) => {
+        // Response shape: { success, data: Agent[], message }
+        const list: Agent[] = Array.isArray(res?.data)
+          ? res.data
+          : (res?.data?.agents ?? []);
+        setAgents(list);
+      })
+      .catch((err: any) => setError(err?.message ?? "Failed to load agents"))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadAgents();
+  }, []);
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1
@@ -50,31 +69,33 @@ export default async function AgentsPage() {
             Delivery Agents
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            {agents.length} agent{agents.length !== 1 ? "s" : ""} in your
-            workforce
+            {loading
+              ? "Loading..."
+              : `${agents.length} agent${agents.length !== 1 ? "s" : ""} in your workforce`}
           </p>
         </div>
-        <CreateAgentDialog />
+        <CreateAgentDialog onCreated={loadAgents} />
       </div>
 
-      {agents.length === 0 ? (
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 size={28} className="animate-spin text-indigo-400" />
+        </div>
+      )}
+
+      {/* Error */}
+      {!loading && error && (
+        <div className="py-6 text-center text-sm text-red-500 bg-red-50 rounded-xl border border-red-100">
+          {error}
+        </div>
+      )}
+
+      {/* Empty */}
+      {!loading && !error && agents.length === 0 && (
         <div className="py-16 flex flex-col items-center gap-4 border border-dashed border-slate-200 rounded-2xl text-center bg-slate-50">
           <div className="w-14 h-14 rounded-full bg-indigo-50 flex items-center justify-center">
-            <svg
-              width="26"
-              height="26"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#6366f1"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
+            <Users size={26} className="text-indigo-400" />
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-700">
@@ -84,9 +105,12 @@ export default async function AgentsPage() {
               Register agents so you can assign deliveries to them.
             </p>
           </div>
-          <CreateAgentDialog />
+          <CreateAgentDialog onCreated={loadAgents} />
         </div>
-      ) : (
+      )}
+
+      {/* Agent Cards */}
+      {!loading && !error && agents.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {agents.map((agent) => (
             <div
@@ -102,18 +126,20 @@ export default async function AgentsPage() {
                 {agent.phone && (
                   <p className="text-xs text-slate-400 mt-0.5">{agent.phone}</p>
                 )}
-                {agent.assignedShipments !== undefined && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                    {agent.assignedShipments} active deliveries
-                  </div>
+                {agent.createdAt && (
+                  <p className="text-xs text-slate-300 mt-1">
+                    Joined{" "}
+                    {new Date(agent.createdAt).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
                 )}
               </div>
-              <div className="shrink-0">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-600 uppercase tracking-wide">
-                  Active
-                </span>
-              </div>
+              <span className="shrink-0 inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-600 uppercase tracking-wide">
+                Active
+              </span>
             </div>
           ))}
         </div>

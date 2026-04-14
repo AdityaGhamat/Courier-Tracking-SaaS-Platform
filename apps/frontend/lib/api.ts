@@ -216,3 +216,9 @@ export const subscriptionsApi = {
 export const uploadApi = {
   upload: (body: unknown) => request("upload", { method: "POST", body }),
 };
+
+export const agentsApi = {
+  list: () => request("auth/agents"),
+  create: (body: unknown) =>
+    request("auth/register-agent", { method: "POST", body }),
+};

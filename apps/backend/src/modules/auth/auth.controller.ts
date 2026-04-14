@@ -213,6 +213,15 @@ class AuthController {
       next(error);
     }
   }
+  async listAgents(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { workspaceId } = (req as any).user;
+      const agents = await authService.listAgents(workspaceId);
+      return SuccessResponse(res, 200, agents, "Agents fetched successfully");
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const authController = new AuthController();

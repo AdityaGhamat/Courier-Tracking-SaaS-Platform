@@ -204,5 +204,10 @@ router.post(
   validate(registerAgentSchema),
   authController.registerAgent,
 );
-
+router.get(
+  "/agents",
+  AuthMiddleware,
+  requireRole(["admin"]),
+  authController.listAgents,
+);
 export default router;

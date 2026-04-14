@@ -1,6 +1,6 @@
 import { db } from "../../core/database";
 import { users, workspaces } from "../../core/database/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import passwordLib from "../utility/password";
 import Cookie from "../utility/cookie";
 import {
@@ -227,6 +227,25 @@ class AuthService {
       throw new BadRequestError("User not found");
     }
     return user;
+  }
+
+  async listAgents(adminWorkspaceId: string) {
+    const { and } = await import("drizzle-orm");
+    const agents = await db.query.users.findMany({
+      where: and(
+        eq(users.workspaceId, adminWorkspaceId),
+        eq(users.role, "delivery_agent"),
+      ),
+      columns: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        workspaceId: true,
+        createdAt: true,
+      },
+    });
+    return agents;
   }
 }
 

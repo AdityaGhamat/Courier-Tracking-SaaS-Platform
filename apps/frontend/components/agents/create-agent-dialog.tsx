@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { UserPlus, Mail, Lock, User, Shield } from "lucide-react";
+import { UserPlus, Shield } from "lucide-react";
 import { authApi } from "@/lib/api";
 import {
   Dialog,
@@ -26,12 +25,15 @@ interface CreateAgentForm {
   password: string;
 }
 
+interface Props {
+  onCreated?: () => void;
+}
+
 const EMPTY: CreateAgentForm = { name: "", email: "", password: "" };
 const inputCls =
   "bg-slate-50 border-slate-200 focus:border-indigo-400 focus:ring-indigo-400/20 text-sm";
 
-export function CreateAgentDialog() {
-  const router = useRouter();
+export function CreateAgentDialog({ onCreated }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,14 +55,13 @@ export function CreateAgentDialog() {
     setLoading(true);
     setError(null);
     try {
-      // POST /auth/register-agent with { name, email, password }
       await authApi.registerAgent({
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
       });
       handleOpenChange(false);
-      router.refresh();
+      onCreated?.(); // ← refresh the agents list in parent
     } catch (err: any) {
       setError(err?.message ?? "Failed to register agent");
     } finally {
@@ -80,6 +81,7 @@ export function CreateAgentDialog() {
       </DialogTrigger>
 
       <DialogContent className="p-0 overflow-hidden sm:max-w-[420px] gap-0 rounded-xl border-slate-200">
+        {/* Header */}
         <div
           className="px-6 py-5 flex items-center gap-3"
           style={{ background: "linear-gradient(135deg,#1e1b4b,#312e81)" }}
@@ -108,6 +110,7 @@ export function CreateAgentDialog() {
               </p>
             </div>
 
+            {/* Name */}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                 Full Name <span className="text-red-400">*</span>
@@ -123,6 +126,7 @@ export function CreateAgentDialog() {
               />
             </div>
 
+            {/* Email */}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                 Email Address <span className="text-red-400">*</span>
@@ -138,6 +142,7 @@ export function CreateAgentDialog() {
               />
             </div>
 
+            {/* Password */}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                 Password <span className="text-red-400">*</span>
@@ -155,12 +160,14 @@ export function CreateAgentDialog() {
             </div>
           </div>
 
+          {/* Error */}
           {error && (
             <div className="mx-6 mb-3 px-4 py-2.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
               {error}
             </div>
           )}
 
+          {/* Footer */}
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
             <Button
               type="button"
