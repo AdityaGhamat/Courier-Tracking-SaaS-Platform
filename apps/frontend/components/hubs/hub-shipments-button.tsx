@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { hubsApi, shipmentsApi } from "@/lib/api";
 import { Package, Plus, X, Loader2, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 interface Shipment {
   id: string;
@@ -173,31 +174,27 @@ function ShipmentsDrawer({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">{hubName}</h2>
-              <p className="text-xs text-slate-500">
-                {loading
-                  ? "Loading..."
-                  : `${shipments.length} shipment${shipments.length !== 1 ? "s" : ""} assigned`}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowAssign(true)}
-                className="flex items-center gap-1 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-100 transition-colors"
-              >
-                <Plus size={11} /> Assign
-              </button>
-              <button
-                onClick={onClose}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X size={18} />
-              </button>
-            </div>
+          // In ShipmentsDrawer — replace the header buttons div:
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/hubs/${hubId}`}
+              className="flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors no-underline"
+            >
+              <ChevronRight size={11} /> Full View
+            </Link>
+            <button
+              onClick={() => setShowAssign(true)}
+              className="flex items-center gap-1 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-100 transition-colors"
+            >
+              <Plus size={11} /> Assign
+            </button>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600"
+            >
+              <X size={18} />
+            </button>
           </div>
-
           {/* Body */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
             {loading ? (
