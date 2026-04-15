@@ -117,14 +117,26 @@ export default function RegisterTenantPage() {
 
   async function onSubmit(data: RegisterTenantForm) {
     setServerError("");
+
     try {
-      const res = (await authApi.registerTenant(data)) as {
-        data: AuthResponse;
+      const payload = {
+        adminName: data.name,
+        email: data.email,
+        password: data.password,
+        companyName: data.workspaceName, // ✅ mapping FIX
       };
+
+      const res = (await authApi.registerTenant(payload)) as any;
+
       setUser(res.data.user);
       router.push("/dashboard");
     } catch (err: any) {
-      setServerError(err?.message ?? "Registration failed. Please try again.");
+      console.error("Register error:", err);
+      setServerError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Registration failed. Please try again.",
+      );
     }
   }
 
